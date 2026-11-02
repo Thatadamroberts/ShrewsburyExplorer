@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#17152e">
+<meta name="description" content="A pixel-art history exploration game set in Shrewsbury, England.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shrewsbury">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Shrewsbury: An Unfinished Survey</title>
+<style>
+:root{
+  --ink:#232244; --ink-soft:#4f4c78; --paper:#fffbef; --paper-2:#f4ebd3; --paper-3:#e7dab8;
+  --frame:#33407a; --frame-hi:#8ea5ff; --accent:#c4472f; --gold:#e3a72f; --green:#3f8a46;
+  --fog:#17152e; --shadow:rgba(10,8,30,.45);
+  --mono:"Lucida Console","Monaco","Consolas","DejaVu Sans Mono","Courier New",monospace;
+  --serif:Georgia,"Times New Roman",serif;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px); --sr:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--fog);overscroll-behavior:none}
+body{color:var(--ink);font-family:var(--mono);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;-webkit-touch-callout:none}
+#game{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.hidden{display:none !important}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
+
+/* ---------- DS-style framed box ---------- */
+.box{background:var(--paper);border:3px solid var(--ink);border-radius:12px;
+  box-shadow:inset 0 0 0 3px var(--frame-hi),inset 0 0 0 5px var(--paper),inset 0 0 0 6px var(--frame),0 5px 0 var(--shadow);
+  padding:16px 18px}
+.btn{background:linear-gradient(#ffffff,#ece3cb);border:3px solid var(--ink);border-radius:9px;padding:9px 14px;
+  font-weight:700;font-family:var(--mono);font-size:15px;box-shadow:0 3px 0 var(--ink);text-shadow:1px 1px 0 #d8cfb6;line-height:1.15}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn.primary{background:linear-gradient(#ffe8a6,#f0c255)}
+.btn[disabled]{opacity:.45;cursor:default;transform:none;box-shadow:0 3px 0 var(--ink)}
+.btn.small{font-size:12px;padding:6px 9px;border-width:2px;box-shadow:0 2px 0 var(--ink)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none}
+#stats{position:absolute;top:calc(8px + var(--st));left:calc(8px + var(--sl));padding:8px 12px 9px;font-size:13px;font-weight:700;pointer-events:auto;min-width:150px;border-radius:10px}
+#stats .row{display:flex;justify-content:space-between;gap:10px;text-shadow:1px 1px 0 #d8cfb6}
+.bar{height:8px;border:2px solid var(--ink);border-radius:5px;background:#d9d0b8;margin:4px 0 5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(#7fd86a,#3f9a46)}
+#hudRight{position:absolute;top:calc(8px + var(--st));right:calc(8px + var(--sr));display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:auto}
+#mmWrap{padding:5px;border-radius:10px;line-height:0;cursor:pointer}
+#minimap{width:150px;height:120px;image-rendering:pixelated;border-radius:5px;background:var(--fog)}
+#hudBtns{display:flex;gap:6px}
+#areaBanner{position:absolute;top:calc(10px + var(--st));left:50%;transform:translate(-50%,-140%);transition:transform .35s ease;padding:7px 16px;font-weight:700;font-size:15px;white-space:nowrap;border-radius:10px}
+#areaBanner.show{transform:translate(-50%,0)}
+#toast{position:absolute;left:50%;top:calc(64px + var(--st));transform:translateX(-50%);max-width:min(92vw,520px);padding:10px 14px;font-size:13px;font-weight:700;line-height:1.45;opacity:0;transition:opacity .25s;border-radius:10px}
+#toast.show{opacity:1}
+#prompt{position:absolute;left:50%;bottom:calc(24px + var(--sb));transform:translateX(-50%);padding:6px 12px;font-size:13px;font-weight:700;border-radius:9px}
+#prompt b{display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;margin-right:6px;text-shadow:none}
+
+/* ---------- Dialogue ---------- */
+#dialogue{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + var(--sb));width:min(94vw,660px);min-height:112px;padding:20px 22px 22px;cursor:pointer;z-index:5}
+#dialogue .who{position:absolute;top:-17px;left:18px;background:var(--frame);color:#fff;border:3px solid var(--ink);border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;letter-spacing:.5px}
+#dialogue .text{font-size:17px;line-height:1.5;font-weight:700;text-shadow:2px 2px 0 #dcd3bc;min-height:52px;white-space:pre-wrap}
+#dialogue .next{position:absolute;right:16px;bottom:8px;color:var(--accent);font-size:14px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- Touch controls ---------- */
+#touch{position:fixed;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:4}
+#dpad{position:absolute;left:calc(14px + var(--sl));bottom:calc(16px + var(--sb));width:138px;height:138px;pointer-events:auto;touch-action:none}
+#dpad .arm{position:absolute;background:#2a2a40;border:3px solid #0e0d1c;box-shadow:inset 0 3px 0 #4b4b6b}
+#dpad .h{left:0;top:46px;width:138px;height:46px;border-radius:10px}
+#dpad .v{left:46px;top:0;width:46px;height:138px;border-radius:10px}
+#dpad .hub{position:absolute;left:52px;top:52px;width:34px;height:34px;border-radius:50%;background:#22223a}
+#dpad .tri{position:absolute;width:0;height:0;border:8px solid transparent;opacity:.8}
+#dpad .tu{left:61px;top:10px;border-bottom:10px solid #c9c9e6;border-top:0}
+#dpad .td{left:61px;bottom:10px;border-top:10px solid #c9c9e6;border-bottom:0}
+#dpad .tl{top:61px;left:10px;border-right:10px solid #c9c9e6;border-left:0}
+#dpad .tr{top:61px;right:10px;border-left:10px solid #c9c9e6;border-right:0}
+
+#abtns{position:absolute;right:calc(14px + var(--sr));bottom:calc(22px + var(--sb));width:150px;height:120px;pointer-events:none}
+.pad-btn{position:absolute;width:62px;height:62px;border-radius:50%;border:3px solid #0e0d1c;font-weight:700;font-size:22px;color:#fff;pointer-events:auto;touch-action:none;text-shadow:0 2px 0 rgba(0,0,0,.4);box-shadow:inset 0 -5px 0 rgba(0,0,0,.25),0 4px 0 rgba(0,0,0,.35)}
+.pad-btn.pressed{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25),0 1px 0 rgba(0,0,0,.35)}
+#btnA{right:0;top:0;background:#c4472f}
+#btnB{left:0;bottom:0;background:#3f6fb8}
+.pad-btn small{display:block;font-size:9px;letter-spacing:.5px;margin-top:-2px;opacity:.85}
+body:not(.touch) #touch{display:none}
+body.touch #dialogue{bottom:calc(170px + var(--sb))}
+body.touch #prompt{bottom:calc(166px + var(--sb))}
+body.touch #toast{top:auto;bottom:calc(214px + var(--sb))}
+
+/* ---------- Modals ---------- */
+#modal{position:fixed;inset:0;background:rgba(14,12,32,.62);display:flex;align-items:center;justify-content:center;padding:calc(12px + var(--st)) 12px calc(12px + var(--sb));z-index:10}
+#modalBox{width:min(96vw,600px);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;padding:20px 22px;user-select:text;-webkit-user-select:text}
+#modalBox.wide{width:min(96vw,760px)}
+#modalBox h2{font-size:22px;line-height:1.2;text-shadow:2px 2px 0 #dcd3bc;margin-bottom:4px}
+#modalBox h3{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-soft);margin:14px 0 6px}
+#modalBox p{font-family:var(--serif);font-size:16.5px;line-height:1.6;margin:8px 0}
+#modalBox p.lede{font-size:17.5px}
+#modalBox .small{font-size:13px;color:var(--ink-soft);font-family:var(--mono)}
+.kicker{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700}
+.period{display:inline-block;margin-top:6px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px}
+.relic-head{display:flex;gap:16px;align-items:center;margin-bottom:6px}
+.relic-img{width:112px;height:112px;flex:none;image-rendering:pixelated;background:radial-gradient(circle,#fff8df,#eadbb2);border:3px solid var(--ink);border-radius:10px;box-shadow:inset 0 0 0 2px var(--frame-hi)}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.callout{border:3px solid var(--ink);border-radius:10px;padding:8px 12px;margin:12px 0;background:var(--paper-2)}
+.callout h4{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:2px}
+.callout p{margin:4px 0 !important;font-size:15.5px !important}
+.callout.fact{border-color:#3f6a3f;background:#eef6e6}
+.callout.fact h4{color:#2f5f2f}
+.callout.surprise{border-color:#33407a;background:#eceffd}
+.callout.surprise h4{color:#33407a}
+.callout.legend{border-style:dashed;border-color:#8a5a2a;background:#fbf0dc}
+.callout.legend h4{color:#8a4a1a}
+.callout.visit{border-color:#7a2f22;background:#fdeee9}
+.callout.visit h4{color:#7a2f22}
+.tag{display:inline-block;font-size:10px;letter-spacing:1px;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:2px;color:#fff}
+.tag.est{background:#3f6a3f}.tag.leg{background:#8a4a1a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.card{border:3px solid var(--ink);border-radius:10px;background:var(--paper-2);padding:8px;text-align:center;font-weight:700;font-size:13px;line-height:1.25;display:flex;flex-direction:column;align-items:center;gap:4px}
+.card img{width:64px;height:64px;image-rendering:pixelated}
+.card .q{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#b3a682;background:#e6dbbd;border-radius:8px}
+.card .p{font-weight:400;font-size:11px;color:var(--ink-soft)}
+.card.locked{opacity:.75;background:#ece5d2;cursor:default}
+button.card:hover{background:#fff6dd}
+.menu-list{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.menu-list .btn{text-align:left;font-size:16px;padding:11px 14px}
+.menu-list .btn span{float:right;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}
+.tl{position:relative;margin:10px 0 0 10px;padding-left:22px;border-left:4px solid var(--ink)}
+.tl .era{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:16px 0 6px -22px;padding-left:22px;position:relative}
+.tl .era::before{content:"";position:absolute;left:-9px;top:2px;width:10px;height:10px;background:var(--accent);border:2px solid var(--ink);border-radius:50%}
+.tl-item{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:3px solid var(--ink);border-radius:10px;background:var(--paper-2);padding:6px 10px;margin:6px 0;font-weight:700}
+.tl-item img{width:48px;height:48px;image-rendering:pixelated;flex:none}
+.tl-item .d{font-size:11px;font-weight:400;color:var(--ink-soft)}
+.tl-gap{font-size:12px;color:var(--ink-soft);font-style:italic;margin:6px 0}
+.route li{margin:8px 0 8px 4px;font-family:var(--serif);font-size:15.5px;line-height:1.45}
+.route li.miss{opacity:.45}
+.route li b{font-family:var(--mono)}
+.route ol{padding-left:24px}
+#thorneMap{width:100%;image-rendering:pixelated;border:3px solid var(--ink);border-radius:8px;background:var(--fog);margin-top:8px}
+
+/* ---------- Title ---------- */
+#title{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;z-index:8;background:radial-gradient(ellipse at center,rgba(23,21,46,.15),rgba(23,21,46,.7))}
+#titleCard{width:min(94vw,520px);text-align:center;padding:24px 22px 20px}
+#titleCard .kick{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+#titleCard h1{font-size:clamp(34px,10vw,52px);line-height:1;margin:10px 0 2px;color:var(--gold);letter-spacing:1px;
+  text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),3px 3px 0 var(--ink),-3px 3px 0 var(--ink),3px -3px 0 var(--ink),-3px -3px 0 var(--ink),0 7px 0 var(--accent)}
+#titleCard .sub{font-size:18px;font-weight:700;margin-top:14px;color:var(--frame);text-shadow:2px 2px 0 #dcd3bc}
+#titleCard p{font-family:var(--serif);font-size:15.5px;line-height:1.55;margin:14px 0 18px;color:#3b3960}
+#titleCard .btns{display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto}
+#titleCard .foot{margin-top:16px;font-size:11px;color:var(--ink-soft);line-height:1.5}
+#installBtn{margin-top:4px}
+
+@media (max-width:560px){
+  #minimap{width:104px;height:83px}
+  #stats{font-size:12px;min-width:132px;padding:7px 10px}
+  #areaBanner{top:calc(152px + var(--st));font-size:13px}
+  #toast{top:calc(196px + var(--st))}
+  #dialogue .text{font-size:15px}
+  #modalBox{padding:18px 16px}
+  #modalBox p{font-size:15.5px}
+  .relic-img{width:88px;height:88px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-height:500px) and (orientation:landscape){
+  body.touch #dialogue{bottom:calc(10px + var(--sb));width:min(60vw,560px)}
+  body.touch #prompt{bottom:calc(14px + var(--sb))}
+  body.touch #toast{bottom:auto;top:calc(60px + var(--st))}
+  #minimap{width:100px;height:80px}
+  #dpad{transform:scale(.85);transform-origin:bottom left}
+  #abtns{transform:scale(.85);transform-origin:bottom right}
+}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Game view"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="stats" class="box">
+    <div class="row"><span>Explored</span><span id="pct">0%</span></div>
+    <div class="bar"><i id="pctBar"></i></div>
+    <div class="row"><span>Witnesses</span><span id="relicCount">0/10</span></div>
+  </div>
+  <div id="hudRight">
+    <div id="mmWrap" class="box" title="Thorne's map (M)"><canvas id="minimap" width="200" height="160"></canvas></div>
+    <div id="hudBtns"><button class="btn small" id="btnJournal">Journal</button><button class="btn small" id="btnMenu">Menu</button></div>
+  </div>
+  <div id="areaBanner" class="box"></div>
+  <div id="toast" class="box"></div>
+  <div id="prompt" class="box hidden"><b>A</b><span id="promptText">Talk</span></div>
+</div>
+
+<div id="touch">
+  <div id="dpad" aria-label="Direction pad">
+    <div class="arm h"></div><div class="arm v"></div><div class="hub"></div>
+    <div class="tri tu"></div><div class="tri td"></div><div class="tri tl"></div><div class="tri tr"></div>
+  </div>
+  <div id="abtns">
+    <button class="pad-btn" id="btnA" aria-label="A: interact">A<small>TALK</small></button>
+    <button class="pad-btn" id="btnB" aria-label="B: hurry / back">B<small>RUN</small></button>
+  </div>
+</div>
+
+<div id="dialogue" class="box hidden" role="dialog" aria-live="polite">
+  <div class="who" id="dlgWho"></div>
+  <div class="text" id="dlgText"></div>
+  <div class="next" id="dlgNext">&#9660;</div>
+</div>
+
+<div id="modal" class="hidden" role="dialog" aria-modal="true"><div id="modalBox" class="box"></div></div>
+
+<div id="title">
+  <div id="titleCard" class="box">
+    <div class="kick">A local history investigation</div>
+    <h1>Shrewsbury</h1>
+    <div class="sub">An Unfinished Survey</div>
+    <p>In 1887 the antiquarian Augustus Thorne set out to explain a whole town through ten objects. He never finished. The box of his papers has just been handed to you.</p>
+    <div class="btns">
+      <button class="btn primary" id="btnContinue">Continue Survey</button>
+      <button class="btn" id="btnNew">New Survey</button>
+      <button class="btn" id="btnHow">How to Play</button>
+      <button class="btn hidden" id="installBtn">Install on this device</button>
+    </div>
+    <div class="foot">Arrows / WASD to walk &middot; Space to talk &middot; Esc for menu<br>Progress saves automatically.</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ==========================================================================
+   SHREWSBURY: AN UNFINISHED SURVEY
+   All data lives in the clearly labelled objects below. Coordinates are in
+   map tiles (x across, y down), with the map 100 x 80 tiles. Rects are
+   [x, y, width, height].
+   ========================================================================== */
+
+/* ---------- 1. GAME CONFIG ---------- */
+const CONFIG = {
+  tileSize: 16,
+  fogRadius: 5,            // tiles cleared around the walker
+  walkSpeed: 5.2,          // tiles per second
+  runSpeed: 9,
+  sparkleRange: 5,         // tiles at which a relic starts to sparkle
+  finaleExplorePct: 98,    // % of the town that must be explored for the finale
+  saveKey: 'shrewsbury-survey-v1'
+};
+
+/* ---------- 2. MAP DATA ---------- */
+const MAP_DATA = {
+  width: 100,
+  height: 80,
+  start: { x: 55, y: 18, dir: 'down' },          // the railway station forecourt
+
+  // River Severn centre-line. It enters top-left, loops south round the town
+  // and leaves top-right, leaving only the narrow neck where the castle stands.
+  river: {
+    radius: 1.7,
+    points: [[22,-2],[28,6],[33,12],[32,19],[27,26],[23,35],[23,46],[28,55],[37,62],
+             [48,66],[60,64],[69,57],[75,47],[75,37],[72,28],[67,21],[66,14],[69,6],[76,-2]]
+  },
+  interiorSeed: [48, 40],   // any tile inside the loop
+  interiorTop: 13,          // the loop interior is closed off at this row (the neck)
+
+  // Walkable ground outside the loop (everything else outside is farmland)
+  ground: [
+    [36, 0, 30, 13],   // Castle Foregate & Ditherington
+    [6, 24, 16, 18],   // Frankwell
+    [77, 36, 23, 16]   // Abbey Foregate
+  ],
+
+  plazas: [
+    { type: 'pave', rect: [50, 17, 12, 2] },  // station forecourt
+    { type: 'pave', rect: [61, 13, 1, 4] },   // platform
+    { type: 'pave', rect: [46, 21, 2, 7] },   // library forecourt
+    { type: 'pave', rect: [44, 34, 12, 5] },  // The Square
+    { type: 'pave', rect: [63, 38, 5, 1] },   // Lion Hotel frontage
+    { type: 'pave', rect: [50, 9, 12, 2] },   // mill yard
+    { type: 'dirt', rect: [33, 49, 6, 6] }    // the Dingle walks
+  ],
+
+  hedges: [
+    [36, 12, 12, 1], [50, 12, 12, 1],         // north cordon line
+    [34, 14, 1, 18], [35, 31, 1, 1],          // west edge of the centre
+    [34, 37, 10, 1], [41, 38, 3, 2], [46, 39, 4, 1],
+    [62, 19, 1, 18],                          // east edge of the centre
+    [56, 44, 1, 19],                          // Town Walls gardens
+    // The Dingle: a walled sunken garden with one entrance on the east
+    [32, 48, 8, 1], [32, 55, 8, 1], [32, 49, 1, 6], [39, 49, 1, 2], [39, 53, 1, 2]
+  ],
+  walls: [[46, 49, 10, 1], [57, 49, 4, 1]],   // a stretch of the medieval town wall
+  ponds: [[35, 51, 2, 2]],
+  rail: [[62, 0, 2, 19]],
+  flowerbeds: [[33, 49, 2, 1], [37, 49, 2, 1], [33, 54, 2, 1], [37, 54, 2, 1], [33, 51, 1, 2], [57, 25, 1, 1]],
+
+  // Streets. type: road (cobbles) | dirt | pave. w = width in tiles.
+  roads: [
+    { name: 'Castle Foregate / Castle Street / Pride Hill', w: 2, pts: [[48,0],[48,35]] },
+    { name: 'Mardol to the Welsh Bridge',   w: 2, pts: [[43,35],[18,35]] },
+    { name: 'Frankwell',                    w: 2, pts: [[18,35],[8,35],[8,26]] },
+    { name: 'High Street & Wyle Cop',       w: 2, pts: [[55,36],[56,36],[59,37],[63,39],[67,41],[70,43],[73,44]] },
+    { name: 'English Bridge',               w: 2, pts: [[73,44],[80,44]] },
+    { name: 'Abbey Foregate',               w: 2, pts: [[80,44],[99,44]] },
+    { name: 'Fish Street & Butcher Row',    w: 2, pts: [[50,28],[60,28]] },
+    { name: 'Grope Lane',                   w: 1, pts: [[53,30],[53,33]] },
+    { name: 'Shoplatch & Claremont',        w: 2, pts: [[44,37],[44,40],[41,40]] },
+    { name: 'Town Walls',                   w: 1, pts: [[44,47],[60,47]] },
+    { name: 'Quarry lime avenue',  type: 'dirt', w: 2, pts: [[42,42],[42,59]] },
+    { name: 'Quarry cross path',   type: 'dirt', w: 1, pts: [[39,46],[28,46]] },
+    { name: 'Riverside path',      type: 'dirt', w: 1, pts: [[41,58],[35,58]] },
+    { name: 'Dingle path',         type: 'dirt', w: 1, pts: [[40,51],[41,51]] }
+  ],
+
+  // Landmark buildings (drawn individually). rect = footprint in tiles.
+  buildings: [
+    { kind: 'castle',   name: 'Shrewsbury Castle',          rect: [38, 13, 9, 6] },
+    { kind: 'station',  name: 'Shrewsbury Station',         rect: [51, 13, 10, 4] },
+    { kind: 'library',  name: 'Library (old Shrewsbury School)', rect: [40, 22, 6, 5] },
+    { kind: 'church',   name: "St Mary's Church",           rect: [56, 19, 6, 6] },
+    { kind: 'abbots',   name: "The Abbot's House",          rect: [50, 24, 6, 4] },
+    { kind: 'market',   name: 'Old Market Hall',            rect: [46, 34, 5, 3] },
+    { kind: 'irelands', name: "Ireland's Mansion",          rect: [50, 39, 6, 4] },
+    { kind: 'stchad',   name: "St Chad's Church",           rect: [35, 38, 6, 6] },
+    { kind: 'lion',     name: 'The Lion Hotel',             rect: [63, 34, 5, 4] },
+    { kind: 'abbey',    name: 'Shrewsbury Abbey',           rect: [82, 38, 9, 5] },
+    { kind: 'mount',    name: 'The Mount',                  rect: [11, 25, 6, 4] },
+    { kind: 'flaxmill', name: 'Ditherington Flax Mill',     rect: [51, 3, 9, 6] },
+    { kind: 'kiln',     name: 'Malt kiln',                  rect: [52, 0, 5, 2] }
+  ],
+
+  // Rows of ordinary houses and shops, split automatically into plots.
+  // style: timber | brick | stucco | mixed
+  terraces: [
+    { rect: [50, 20, 6, 4],  style: 'mixed' },   // Castle Street east
+    { rect: [44, 28, 4, 6],  style: 'mixed' },   // Pride Hill west
+    { rect: [36, 28, 8, 3],  style: 'brick' },
+    { rect: [50, 30, 3, 4],  style: 'timber' },  // Grope Lane west
+    { rect: [54, 30, 8, 4],  style: 'timber' },  // Grope Lane east
+    { rect: [56, 34, 6, 2],  style: 'mixed' },   // High Street
+    { rect: [27, 32, 17, 3], style: 'mixed' },   // Mardol north
+    { rect: [28, 38, 6, 4],  style: 'mixed' },   // Mardol south
+    { rect: [11, 31, 9, 4],  style: 'mixed' },   // Frankwell
+    { rect: [10, 37, 10, 4], style: 'timber' },
+    { rect: [46, 40, 4, 4],  style: 'brick' },   // Belmont
+    { rect: [47, 44, 9, 2],  style: 'brick' },
+    { rect: [56, 39, 3, 5],  style: 'mixed' },   // Wyle Cop
+    { rect: [60, 42, 6, 4],  style: 'timber' },
+    { rect: [66, 45, 4, 4],  style: 'brick' },
+    { rect: [63, 24, 3, 4],  style: 'brick' },
+    { rect: [64, 30, 5, 3],  style: 'stucco' },
+    { rect: [92, 38, 7, 5],  style: 'mixed' },   // Abbey Foregate
+    { rect: [89, 47, 10, 4], style: 'brick' },
+    { rect: [38, 2, 9, 8],   style: 'brick' }    // Ditherington terraces
+  ],
+
+  // Trees: explicit lines (the Quarry's lime avenues) + random scatter in gardens.
+  treeLines: [
+    { x: 40, from: 43, to: 59, step: 2 },
+    { x: 45, from: 49, to: 59, step: 2 }
+  ],
+  trees: [[36,13],[37,17],[35,20],[36,24],[38,27],[57,13],[61,22],[80,38],[78,41],[95,51]],
+  scatterDensity: 0.10,
+  noTrees: [[26, 43, 14, 20], [44, 38, 2, 9]],   // keep the Quarry lawns open
+
+  // Decorative objects (all solid). Signs are listed separately in SIGNS.
+  props: [
+    { type: 'stall', x: 54, y: 35 }, { type: 'stall', x: 54, y: 37 },
+    { type: 'lamp', x: 84, y: 46 }, { type: 'lamp', x: 92, y: 46 }, { type: 'lamp', x: 47, y: 20 },
+    { type: 'bench', x: 38, y: 45 }, { type: 'bench', x: 30, y: 45 }, { type: 'bench', x: 36, y: 57 }
+  ],
+
+  // Place-name banners shown as you walk (first match wins).
+  areas: [
+    { name: 'Railway Station',            rect: [50, 13, 13, 6] },
+    { name: 'Ditherington Flax Mill',     rect: [50, 0, 16, 12] },
+    { name: 'Castle Foregate',            rect: [36, 0, 14, 12] },
+    { name: 'Shrewsbury Castle',          rect: [35, 13, 13, 8] },
+    { name: 'Castle Gates',               rect: [35, 21, 13, 6] },
+    { name: 'Pride Hill',                 rect: [46, 27, 4, 7] },
+    { name: 'Butcher Row',                rect: [50, 28, 12, 2] },
+    { name: 'Grope Lane',                 rect: [53, 30, 1, 4] },
+    { name: "St Mary's",                  rect: [56, 19, 6, 9] },
+    { name: 'The Square',                 rect: [44, 34, 12, 5] },
+    { name: 'Welsh Bridge',               rect: [18, 33, 8, 5] },
+    { name: 'Mardol',                     rect: [25, 35, 19, 4] },
+    { name: 'Frankwell',                  rect: [0, 20, 18, 25] },
+    { name: "St Chad's",                  rect: [34, 37, 12, 8] },
+    { name: 'The Dingle',                 rect: [32, 48, 8, 8] },
+    { name: 'The Quarry',                 rect: [24, 44, 22, 20] },
+    { name: 'Town Walls',                 rect: [44, 44, 13, 18] },
+    { name: 'Wyle Cop',                   rect: [56, 34, 17, 14] },
+    { name: 'English Bridge',             rect: [72, 42, 8, 5] },
+    { name: 'Abbey Foregate',             rect: [77, 30, 23, 25] },
+    { name: 'The Severn',                 rect: [0, 0, 100, 80] }
+  ]
+};
+
+/* ---------- 3. ZONES (unlocked as relics are logged) ---------- */
+// A tile belongs to the first zone whose rects contain it; anything else is the centre.
+const ZONES = [
+  { id: 'north', name: 'Castle Foregate & Ditherington', unlockAt: 8, rects: [[0, 0, 100, 12]],
+    unlockText: `Eight witnesses logged. The final section of Thorne's survey — Castle Foregate and the great mill at Ditherington — can now be walked. Head north past the station.` },
+  { id: 'east', name: 'Wyle Cop, the English Bridge & Abbey Foregate', unlockAt: 4, rects: [[62, 12, 38, 68], [56, 37, 6, 43]],
+    unlockText: `Four witnesses logged. Thorne's pages on Wyle Cop, the English Bridge and the Abbey are legible at last. The cordon at the top of Wyle Cop has been lifted.` },
+  { id: 'west', name: "Mardol, St Chad's & the Quarry", unlockAt: 2, rects: [[0, 12, 34, 68], [34, 30, 10, 50], [44, 39, 12, 41]],
+    unlockText: `Two witnesses logged. Thorne's notes on Mardol, St Chad's, Frankwell and the Quarry finally make sense, and the cordons west and south of the Square have been lifted.` },
+  { id: 'centre', name: 'the Town Centre', unlockAt: 0, rects: null }
+];
+
+/* ---------- 4. RELICS ("witnesses") ---------- */
+// year is used for the Timeline. legend (optional) holds anything traditional,
+// disputed or mythical, and is always shown apart from established fact.
+const RELICS = [
+  {
+    id: 'coin', name: 'Viroconium Coin', period: 'Roman, c. AD 55–400', year: 60,
+    x: 97, y: 45, zone: 'east',
+    summary: `A worn bronze coin of the kind that changed hands daily at Viroconium, five miles south-east of here. Long before Shrewsbury existed, the Roman city at Wroxeter was among the largest in Britain, and its slow decline is part of why a new settlement eventually grew up in this loop of the river instead.`,
+    more: `Viroconium began around AD 55–60 as a legionary fortress guarding the Severn and the frontier with Wales. When the army moved on to Chester around AD 90, the site became the capital of the Cornovii, the local tribe. At its height it covered almost 200 acres, with a forum, market hall and public baths, and it is usually ranked the fourth-largest town in Roman Britain. Excavation has shown that people went on living there after Roman rule ended, rebuilding in timber on the old baths site into the fifth and sixth centuries. In time the population drifted away, and the defensible river loop at Shrewsbury, first recorded in the Saxon period, became the focus of the region.`,
+    surprise: `The "Old Work" at Wroxeter, a fragment of the baths' exercise-hall wall more than seven metres high, is one of the largest pieces of free-standing Roman masonry in Britain. It has stood, unroofed, for the best part of 1,800 years.`,
+    legend: { type: 'Disputed', text: `Shrewsbury is often identified with Pengwern, the seat of early kings of Powys lamented in the Welsh poems of Canu Heledd. No archaeological evidence confirms it. Pengwern's location is genuinely unknown, and several other Shropshire sites have been proposed.` },
+    visit: `Wroxeter Roman City (English Heritage), about five miles south-east of Shrewsbury. Finds from the site are displayed at Shrewsbury Museum & Art Gallery, in the Music Hall just off the Square.`,
+    clue: `Follow the old road out of town to the east, as far as the survey reaches. Five miles further on lies a city older than this one.`
+  },
+  {
+    id: 'castle', name: 'Castle Stone', period: 'Norman, from c. 1070', year: 1070,
+    x: 40, y: 20, zone: 'centre',
+    summary: `A block of red sandstone from Shrewsbury Castle, begun by Roger de Montgomery within a few years of the Norman Conquest. The castle sits on the one narrow neck of land the Severn leaves open, which is precisely why the town is where it is.`,
+    more: `William the Conqueror made Roger de Montgomery Earl of Shrewsbury in the early 1070s, with the job of holding the Welsh border. The Domesday Book of 1086 records that 51 houses had been destroyed to make room for his castle: the conquest's cost to ordinary townspeople, in a single line. The early earth-and-timber fortress was rebuilt in stone over the following centuries. In 1283 Dafydd ap Gruffydd, who had briefly claimed his dead brother Llywelyn's title of Prince of Wales, was condemned at Shrewsbury and executed with deliberate brutality, one of the earliest recorded hangings, drawings and quarterings. By the 1780s the castle was a private house, remodelled by a young Thomas Telford.`,
+    surprise: `Laura's Tower, the little summerhouse on the castle mound, was built by Telford for Sir William Pulteney's daughter Laura. In 1992 an IRA incendiary bomb at the castle destroyed or damaged much of the regimental museum's collection.`,
+    legend: null,
+    visit: `Shrewsbury Castle and the Soldiers of Shropshire Museum, Castle Street: a two-minute walk from the station.`,
+    clue: `Thorne began where the Normans did: at the only dry way into the town. Fifty-one households lost their homes to what stands there. Look by its gate.`
+  },
+  {
+    id: 'seal', name: 'Abbey Seal', period: 'Medieval, founded 1083', year: 1083,
+    x: 86, y: 43, zone: 'east',
+    summary: `A wax impression bearing the crossed keys of St Peter, patron of the Benedictine abbey Roger de Montgomery founded in 1083. For four and a half centuries it was one of the richest institutions in the county, and from 1138 a place of pilgrimage.`,
+    more: `The abbey replaced a small wooden Saxon church of St Peter outside the town's eastern crossing. Monks came from Normandy to staff it, and Roger himself took the habit there days before his death in 1094. In 1138 the monks brought the relics of St Winefride from Gwytherin in north Wales, and pilgrims, with their donations, followed. When the monastery was dissolved in 1540 most of its buildings were pulled down, but the nave survived because it already served as the parish church. A further loss came in the 1830s, when the improved Holyhead road was driven straight through what remained of the monastic precinct.`,
+    surprise: `The stone pulpit from which a monk read aloud to his brothers during meals still stands, on its own, across the road from the abbey: all that is left of the refectory, marooned beside a car park.`,
+    legend: { type: 'Legend', text: `According to her medieval Life, Winefride was beheaded by a rejected suitor and restored to life by St Beuno, and a spring rose where her head fell: the origin of the shrine at Holywell. What became of her relics at the Dissolution is unknown. Ellis Peters' Brother Cadfael novels, set in this abbey, are fiction, though the 1138 translation of the relics is not.` },
+    visit: `Shrewsbury Abbey, Abbey Foregate, just over the English Bridge; the refectory pulpit is opposite.`,
+    clue: `Cross the English Bridge and look for the keys of St Peter. The monks lost their abbey in 1540; the parishioners kept the nave.`
+  },
+  {
+    id: 'arrow', name: 'Arrowhead', period: '21 July 1403', year: 1403,
+    x: 48, y: 1, zone: 'north',
+    summary: `A narrow, armour-piercing arrowhead from the Battle of Shrewsbury, fought three miles north of the town. Henry IV defeated the rebel Henry "Hotspur" Percy in one of the first battles in which English longbowmen were ranged against each other in great numbers.`,
+    more: `The Percys, who had helped Henry IV seize the throne, rebelled in 1403 and hoped to join forces with Owain Glyndŵr. The king reached Shrewsbury first. Battle was joined late on 21 July, and the archery on both sides was devastating; chroniclers describe the arrows falling like rain. Hotspur was killed and his army broke. Thousands died, though no reliable count survives. The king had Hotspur's body exhumed and displayed in Shrewsbury, propped between two millstones, before it was quartered and sent around the kingdom. His uncle Thomas Percy, Earl of Worcester, was beheaded in the town two days after the battle. A chantry church was later founded on the field to pray for the dead.`,
+    surprise: `The sixteen-year-old Prince Henry, the future Henry V, was struck in the face by an arrow. The royal surgeon John Bradmore extracted the head with a pair of hollow tongs made for the purpose, dressed the wound with honey, and wrote the whole operation up.`,
+    legend: { type: 'Tradition', text: `Hotspur is said to have died after lifting his visor for air and taking an arrow in the face. It is plausible, but unproven. Shakespeare's version, in which Prince Hal kills him in single combat, is theatre.` },
+    visit: `Battlefield, three miles north of the town centre: St Mary Magdalene's Church (Churches Conservation Trust) stands on the site, with walks around the fields.`,
+    clue: `In 1403 two armies of archers met three miles up this road. Walk north until the survey runs out.`
+  },
+  {
+    id: 'beam', name: 'Tudor Roof Beam', period: 'Late medieval & Tudor, c. 1450–1600', year: 1459,
+    x: 56, y: 28, zone: 'centre',
+    summary: `An oak tie-beam with the carpenter's assembly numerals still cut into it. Shrewsbury kept an unusual number of its medieval and Tudor timber buildings, so its crooked street plan and skyline still read much as they did five centuries ago. (Strictly, the oldest of them predate the Tudors. Thorne's label was optimistic.)`,
+    more: `The Abbot's House on Butcher Row has been dated from its timbers to the late 1450s. It is one of the best-preserved medieval shop buildings in England, its ground floor still divided into open-fronted stalls. Butcher Row was the town's shambles, where animals were slaughtered and meat sold, with everything that implied for the street underfoot. Later, fortunes from the wool trade paid for grander houses such as Ireland's Mansion on High Street, built around 1575. Upper storeys were jettied out over the street, and narrow passages, known locally as shuts, threaded between them. Because the town centre escaped heavy industrial redevelopment, an exceptional number survive.`,
+    surprise: `Grope Lane, a few steps away, keeps a shortened form of its medieval name. The original, found in many English towns, described with blunt accuracy the trade carried on there.`,
+    legend: { type: 'Tradition', text: `Despite the name, there is no evidence that an abbot ever lived in the Abbot's House. It is traditionally linked with Lilleshall Abbey, which may have built it as a commercial investment: a monastic buy-to-let.` },
+    visit: `Butcher Row and the Abbot's House, at the corner of Fish Street; Grope Lane; Ireland's Mansion on High Street.`,
+    clue: `Before there were shops there were shambles. Follow the butchers' street to a house that has kept its fifteenth-century shop counters.`
+  },
+  {
+    id: 'ledger', name: "Wool Merchant's Ledger", period: '16th–17th centuries', year: 1570,
+    x: 26, y: 36, zone: 'west',
+    summary: `A draper's account book, its columns full of Welsh cloth bought by the yard. For two centuries the Shrewsbury Drapers' Company dominated the trade in Welsh woollens, and the profits rebuilt the town in carved oak and plaster.`,
+    more: `Weavers in the hill country of Montgomeryshire and Merioneth made a coarse, hard-wearing woollen cloth, sold as Welsh "plains" or "cottons". Shrewsbury drapers bought it, had it finished by local shearmen, and sent it on to London, where much of it was exported. The Drapers' Company, granted its charter in 1462, guarded its control jealously, and by the later sixteenth century its leading members were the richest men in town. Their hall and houses, among them Drapers' Hall on St Mary's Place and Ireland's Mansion and Owen's Mansion near the Square, still stand. The wealth was unevenly shared. The spinners and weavers, many of them women working at home, were paid by the piece and bore the loss when trade slumped.`,
+    surprise: `The cloth came into town over the Welsh Bridge. The present bridge dates from 1795; it replaced a medieval one whose fortified gatehouse guarded the road from Wales.`,
+    legend: null,
+    visit: `Drapers' Hall, St Mary's Place; Ireland's Mansion, High Street; and the Welsh Bridge at the foot of Mardol.`,
+    clue: `Welsh cloth came into this town from the west and left by the London road. Thorne's ledger went the same way in reverse: down Mardol, towards the river.`
+  },
+  {
+    id: 'finch', name: 'Finch Sketch', period: '1809–1882', year: 1809,
+    x: 46, y: 26, zone: 'centre',
+    summary: `A pencil study of finches' beaks, after the specimens Charles Darwin brought back from the Galápagos. Darwin was born in Shrewsbury in 1809 and schooled here, and the town that formed him also, for a while, despaired of him.`,
+    more: `Darwin was born at The Mount, the large house in Frankwell that his father, a prosperous doctor, had built above the Severn. He was baptised at St Chad's and from 1818 to 1825 boarded at Shrewsbury School, then housed in the building that is now the town library. He was not a distinguished pupil. The headmaster, Samuel Butler, rebuked him in front of the school for wasting time on chemistry, and his schoolfellows nicknamed him "Gas". After false starts in medicine and the Church, he sailed on HMS Beagle in 1831, and in 1859 he published On the Origin of Species. The seated bronze statue outside the library was unveiled in 1897.`,
+    surprise: `The finches did not dazzle Darwin at first. He failed to label most of them by island, and only after the ornithologist John Gould identified them as a group of distinct species did their importance sink in. The Galápagos mockingbirds had struck him sooner.`,
+    legend: { type: 'Popular myth', text: `The picture of Darwin grasping evolution in a flash among the Galápagos finches is a later simplification. His theory took shape slowly, in notebooks, over the two decades after he came home.` },
+    visit: `The Darwin statue outside Shrewsbury Library, Castle Gates; St Chad's Church; and "Quantum Leap", the 2009 bicentenary sculpture at Mardol Quay.`,
+    clue: `A boy who studied here was mocked as "Gas" for his chemistry. He sits outside his old school now, in bronze, rather better thought of. Look at his feet.`
+  },
+  {
+    id: 'iron', name: 'Iron Column Fragment', period: '1796–97', year: 1797,
+    x: 58, y: 10, zone: 'north',
+    summary: `A fragment of cast-iron column from Ditherington Flax Mill, the first building in the world with a fully iron internal frame. Its central idea, a load-bearing metal skeleton, is the direct ancestor of the skyscraper.`,
+    more: `Textile mills were notorious fire risks: dust, oil, lamps and timber floors. In 1796–97 the engineer Charles Bage designed a flax mill for John Marshall and the brothers Thomas and Benjamin Benyon with cast-iron columns and beams carrying brick arches, leaving no structural timber to burn. Many of the people who worked inside were children. Early nineteenth-century flax mills commonly employed boys and girls from about nine years old for shifts of twelve hours or more, in heat, noise and air thick with fibre, and some were pauper apprentices sent from workhouses. The mill became a maltings in 1897, closed in 1987 and, after decades of uncertainty, reopened in 2022 following restoration led by Historic England.`,
+    surprise: `Bage built on William Strutt's earlier fire-resistant mills in Derbyshire, but went further by doing away with timber beams altogether. During the Second World War the building served as an army barracks.`,
+    legend: null,
+    visit: `Shrewsbury Flaxmill Maltings, Spring Gardens, Ditherington: about fifteen minutes' walk north of the station.`,
+    clue: `This mill was built so that it could not burn: no wooden beams, only iron. One of its bones lies in the yard.`
+  },
+  {
+    id: 'horn', name: 'Coaching Horn', period: 'c. 1780–1850', year: 1815,
+    x: 65, y: 38, zone: 'east',
+    summary: `A guard's brass horn, blown to warn toll-keepers and innkeepers that a coach was coming. Shrewsbury lay on the main road from London to Holyhead and the Irish ferries, and for half a century its inns lived by the coaching trade.`,
+    more: `After the Act of Union of 1800 brought Irish MPs to Westminster, the government paid Thomas Telford to rebuild the London–Holyhead road, work that began in 1815. Shrewsbury was a natural stage: coaches crossed the English Bridge, laboured up Wyle Cop and changed horses at inns such as the Lion. The fastest, the "Wonder", ran between London and Shrewsbury in around sixteen hours. The work was relentless for ostlers, post-boys and horses alike, and coach horses were often worn out within a few years. Then the railways came. Shrewsbury's first line opened in 1848, and within a generation the long-distance coaches had all but vanished from the road.`,
+    surprise: `Charles Dickens stayed at the Lion in 1858 while on a reading tour, and in a letter home was delighted by its low, crooked rooms and the black-and-white houses outside his window.`,
+    legend: { type: 'Local legend', text: `The Lion is said to have its share of ghosts, a claim made of most coaching inns old enough to have creaking floorboards.` },
+    visit: `The Lion Hotel, Wyle Cop; and the English Bridge at the foot of the hill (built 1769–74, rebuilt wider and flatter in the 1920s).`,
+    clue: `The coaches stopped under the sign of a golden beast, halfway up the steep hill. Thorne's horn never got further than the doorstep.`
+  },
+  {
+    id: 'poet', name: "Poet's Notebook", period: '1907–1918', year: 1918,
+    x: 81, y: 48, zone: 'east',
+    summary: `A soldier's pocket notebook, its pencilled drafts crossed out and rewritten. Wilfred Owen, the most widely read English poet of the First World War, lived with his family in Shrewsbury, and wrote of the war's reality with a clarity that still unsettles.`,
+    more: `Owen was born in Oswestry in 1893. His family settled in Shrewsbury in 1907, when his father took a post with the railway here, and lived on Monkmoor Road. He worked as a pupil-teacher at the Wyle Cop school before leaving for France and, later, the war. In 1917, while being treated for shell shock at Craiglockhart hospital in Edinburgh, he met Siegfried Sassoon, who encouraged the angry, compassionate poems, among them "Anthem for Doomed Youth" and "Dulce et Decorum Est", for which he is remembered. He went back to the front, won the Military Cross, and was killed on 4 November 1918 crossing the Sambre–Oise Canal. Only five of his poems were published in his lifetime.`,
+    surprise: `His memorial in the Abbey grounds, Paul de Monchaux's sculpture "Symmetry" (1993), was inspired by Owen's poem "Strange Meeting", in which a soldier meets the enemy he killed.`,
+    legend: { type: 'Family tradition', text: `Owen's mother is said to have received the telegram announcing his death on 11 November 1918, as Shrewsbury's church bells rang for the Armistice. The story comes from the family and is widely repeated; it rests on their memory rather than any record.` },
+    visit: `"Symmetry", in the grounds of Shrewsbury Abbey; the Owen family's former home on Monkmoor Road is marked with a plaque.`,
+    clue: `On the morning bells rang for peace, a telegram came to a house on Monkmoor Road. A sculpture in two halves stands for the son, in the abbey's grounds.`
+  }
+];
+
+/* ---------- 5. TOWNSFOLK ---------- */
+// look: colours for the pixel sprite. knows: relic ids they give clues for.
+const NPCS = [
+  {
+    id: 'archivist', name: 'Mrs Hester Rowley', role: 'Archivist', x: 47, y: 23, dir: 'down',
+    look: { coat: '#5b4a9a', legs: '#2f2a4a', skin: '#f0c8a4', hair: '#d8d8e0', skirt: true, accent: '#efe3b8' },
+    knows: ['castle', 'finch'],
+    intro: [
+      `Ah. You'll be the one who signed out Thorne's survey. Nobody has asked for that box since 1952, and the person who did was looking for something else.`,
+      `Augustus Thorne, F.S.A.: antiquarian, pamphleteer, and a man constitutionally incapable of finishing anything. In 1887 he set out to explain the whole town through ten objects. He called them his "witnesses".`,
+      `He died with the survey half-written. His housekeeper, a woman of firm views on clutter, is thought to have returned each witness to roughly where he found it.`,
+      `Find them and his notes will start to make sense again. And do keep his facts and his legends apart. Thorne rarely did.`
+    ],
+    greet: `Back again? The archive is quiet. The clues, less so.`,
+    done: `Ten witnesses, one town. Thorne would be unbearable about it. Come back and tell me what you made of it all.`
+  },
+  {
+    id: 'trader', name: 'Dai Pugh', role: 'Market trader', x: 52, y: 37, dir: 'down',
+    look: { coat: '#2f7a4a', legs: '#3a3a52', skin: '#e8b48c', hair: '#3a2a1e', hat: 'cap', hatCol: '#7a5a3a', accent: '#f2f2f2' },
+    knows: ['beam', 'ledger'],
+    intro: [
+      `Morning! Cheese, honey or local history? Only one of them's free. There's been a market on this square since the Middle Ages.`,
+      `The Old Market Hall behind me went up in 1596. Upstairs the drapers dealt in Welsh cloth; down here, under the arches, they sold corn. My stall is the latest in a very long queue.`
+    ],
+    greet: `Still looking? Same here. For a customer.`,
+    done: `All ten, is it? Then you know more about this town than half the people shopping in it. Don't tell them. They'll want a discount.`
+  },
+  {
+    id: 'warden', name: 'Mr Lionel Adney', role: "Churchwarden, St Chad's", x: 41, y: 43, dir: 'down',
+    look: { coat: '#2b2b33', legs: '#24242c', skin: '#f2cfae', hair: '#8a8a8a', accent: '#f4f4f4' },
+    knows: ['seal', 'poet'],
+    intro: [
+      `Welcome to St Chad's. You'll have noticed that it's round. The old St Chad's, down the hill, collapsed in 1788, shortly after a young surveyor called Thomas Telford warned the parish that its tower was unsafe. They did not listen.`,
+      `This church went up in 1792, looking over the Quarry. Charles Darwin was baptised here. He was rather less of a regular afterwards.`
+    ],
+    greet: `Mind the step. And mind the history; it has a way of tripping people up.`,
+    done: `Everything found and everything in its place. I wish I could say the same for the hymn books.`
+  },
+  {
+    id: 'ostler', name: 'Frank Hollis', role: 'Doorman at the Lion', x: 68, y: 39, dir: 'left',
+    look: { coat: '#7a2a2a', legs: '#2a2a2a', skin: '#e8b896', hair: '#5a3a22', hat: 'bowler', hatCol: '#222230', accent: '#e3a72f' },
+    knows: ['horn', 'coin'],
+    intro: [
+      `You'll want the Lion. Everyone did, once. Coaches up Wyle Cop, fresh horses in the yard, passengers fed and fleeced in about twenty minutes.`,
+      `My great-great-grandfather was an ostler here: up before the first coach, to bed after the last, for a wage that would make you weep. Then the railway came in 1848, and before long there were no coaches left to wait for.`
+    ],
+    greet: `Mind the hill going down. The coachmen used a drag-shoe under a wheel, and they still came down it too fast.`,
+    done: `That's the lot, then. Pull up a chair. It's a long way to Holyhead.`
+  },
+  {
+    id: 'maltster', name: 'Ted Lacon', role: 'Retired maltster', x: 53, y: 10, dir: 'down',
+    look: { coat: '#4a5a6a', legs: '#2f3540', skin: '#e9bf9c', hair: '#b0b0b0', hat: 'cap', hatCol: '#3a3a40', accent: '#d8d0b8' },
+    knows: ['iron', 'arrow'],
+    intro: [
+      `I worked here when it was a maltings. Barley in, malt out, and the smell of it in your clothes for a week. It shut in 1987.`,
+      `Before the malt it was flax, spun into linen thread, and before my time there were children working here, nine and ten years old, on twelve-hour shifts. People call this building the grandfather of the skyscraper. It was also somebody's childhood.`
+    ],
+    greet: `Still here? The building's patient. It's had the practice.`,
+    done: `Survey finished? Good. Write it up properly. Thorne never did.`
+  }
+];
+
+/* ---------- 6. SIGNS & PLAQUES ---------- */
+// Read with A. prop: what is drawn on the tile (sign | statue | symmetry | pulpit |
+// sabrina | quantum | tower | milestone | wallTower).
+const SIGNS = [
+  { x: 50, y: 18, title: 'Shrewsbury Station', text: [`Shrewsbury Station, opened in 1848 and built in a Tudor-Gothic style to look rather older than it was. Thorne thoroughly approved.`, `The survey's district map is blank beyond this forecourt. Mrs Rowley, the archivist, works at the library on Castle Gates, a short walk down the street to the south-west.`] },
+  { x: 47, y: 19, title: 'Shrewsbury Castle', text: [`Shrewsbury Castle. Begun around 1070 by Roger de Montgomery to close the only dry approach to the town. Now home to the Soldiers of Shropshire Museum.`] },
+  { x: 37, y: 15, prop: 'tower', title: "Laura's Tower", text: [`Laura's Tower: a summerhouse built on the castle mound by Thomas Telford for Laura Pulteney, daughter of the castle's owner, in the 1790s.`] },
+  { x: 46, y: 21, title: 'Shrewsbury Library', text: [`Shrewsbury Library, in the buildings of the old Shrewsbury School (1590s–1630). The school moved across the river to Kingsland in 1882; Darwin was a boarder here from 1818 to 1825.`] },
+  { x: 46, y: 24, prop: 'statue', title: 'Darwin statue', text: [`Charles Darwin, seated in bronze, by Horace Montford. Unveiled in 1897, fifteen years after Darwin's death, outside the school where he had been an indifferent pupil.`] },
+  { x: 47, y: 27, title: 'Pride Hill', text: [`Pride Hill, the town's main shopping street. The name is usually traced to the Pride family, medieval burgesses; a satisfyingly moral alternative explanation has no evidence behind it.`] },
+  { x: 59, y: 25, title: "St Mary's Church", text: [`St Mary's, the town's largest church, now cared for by the Churches Conservation Trust. Its spire is one of the tallest in England.`, `In 1739 Robert Cadman, a steeplejack and showman, died attempting to slide down a rope from the spire to the far bank of the Severn. A plaque on the church remembers him.`] },
+  { x: 56, y: 26, title: "The Abbot's House", text: [`The Abbot's House, Butcher Row: a timber-framed shop building dated from its timbers to the late 1450s, with its medieval shop openings still in place.`] },
+  { x: 52, y: 34, title: 'Grope Lane', text: [`Grope Lane: narrow, jettied, gently crooked, and bearing a shortened version of a medieval name that the Victorians preferred not to say aloud.`] },
+  { x: 46, y: 37, title: 'Old Market Hall', text: [`The Old Market Hall, 1596. The drapers traded Welsh cloth on the upper floor; corn was sold in the open arcade below. Today it houses a cinema.`] },
+  { x: 51, y: 38, title: "Ireland's Mansion", text: [`Ireland's Mansion, built around 1575 for Robert Ireland, a wealthy wool merchant. Four storeys of carved timber, paid for by Welsh cloth.`] },
+  { x: 26, y: 38, prop: 'quantum', title: 'Quantum Leap', text: [`"Quantum Leap", a sculpture unveiled in 2009 to mark Darwin's bicentenary. Locals have compared it to a giant spine, a Slinky, and a great many other things.`] },
+  { x: 20, y: 37, title: 'Welsh Bridge', text: [`The Welsh Bridge, built 1793–95 by John Carline and John Tilley, replacing a medieval bridge with a fortified gatehouse. The road beyond leads into Frankwell and on to Wales.`] },
+  { x: 10, y: 28, title: 'The Mount', text: [`The Mount, Frankwell: Charles Darwin's birthplace, built by his father, Dr Robert Darwin, around 1800. A private building; please admire from the road.`] },
+  { x: 40, y: 44, title: "St Chad's Church", text: [`St Chad's, 1790–92, by George Steuart: a round classical church built after the medieval St Chad's collapsed in 1788.`] },
+  { x: 44, y: 46, title: 'The Quarry', text: [`The Quarry: a riverside park of some 29 acres, laid out on the site of a former stone quarry and lined with limes. The Shrewsbury Flower Show has been held here since 1875.`] },
+  { x: 40, y: 50, title: 'The Dingle', text: [`The Dingle: a sunken garden in the old quarry workings, famously tended by Percy Thrower, the town's parks superintendent from 1946 to 1974 and later a television gardener.`] },
+  { x: 35, y: 49, prop: 'sabrina', title: 'Sabrina', text: [`A statue of Sabrina, spirit of the Severn. In the legend told by Geoffrey of Monmouth, the princess Habren was drowned in the river, which took her name.`, `(Legend, not history: Geoffrey of Monmouth was a twelfth-century writer of vivid and largely invented British history.)`] },
+  { x: 61, y: 49, prop: 'wallTower', title: 'Town Walls Tower', text: [`The Town Walls Tower: the only surviving watchtower of Shrewsbury's medieval town walls, which were built mainly in the thirteenth century.`] },
+  { x: 68, y: 37, title: 'The Lion Hotel', text: [`The Lion Hotel, one of the great coaching inns of the London–Holyhead road. The golden lion over the door has been looking down Wyle Cop for well over two centuries.`] },
+  { x: 72, y: 46, title: 'English Bridge', text: [`The English Bridge: built 1769–74 to designs by John Gwynn, and rebuilt in the 1920s, wider and with a gentler hump, for motor traffic.`] },
+  { x: 81, y: 43, title: 'Shrewsbury Abbey', text: [`The Abbey Church of the Holy Cross, founded in 1083 as a Benedictine monastery. Its nave survived the Dissolution because it served the parish.`] },
+  { x: 80, y: 47, prop: 'symmetry', title: 'Symmetry', text: [`"Symmetry" by Paul de Monchaux, 1993: Shrewsbury's memorial to Wilfred Owen, inspired by his poem "Strange Meeting".`] },
+  { x: 86, y: 48, prop: 'pulpit', title: 'Refectory pulpit', text: [`The abbey's fourteenth-century refectory pulpit, from which a monk read to his brothers at meals. The refectory itself is long gone.`] },
+  { x: 98, y: 46, prop: 'milestone', title: 'Road to Wroxeter', text: [`A milestone: WROXETER 5 MILES. The Roman city of Viroconium lies that way, beyond the survey's edge.`] },
+  { x: 50, y: 8, title: 'Ditherington Flax Mill', text: [`Ditherington Flax Mill, 1796–97: the world's first iron-framed building. Later a maltings; restored and reopened in 2022.`] },
+  { x: 47, y: 2, prop: 'milestone', title: 'Road to Battlefield', text: [`BATTLEFIELD 3 MILES. Henry IV and Henry "Hotspur" Percy fought there on 21 July 1403.`] }
+];
+
+/* ---------- 7. STORY TEXT ---------- */
+const STORY = {
+  intro: [
+    { who: 'Shrewsbury Station', text: `Shrewsbury, November. The train leaves you on the platform with a battered document box from the county archive.` },
+    { who: 'Shrewsbury Station', text: `Inside: "An Antiquarian Survey of Shrewsbury, Begun 1887 by Augustus Thorne, F.S.A.": four hundred pages, a hand-drawn map, and no ending.` },
+    { who: 'Shrewsbury Station', text: `Thorne meant to tell the town's story through ten objects he called "witnesses". After his death they were scattered, and beyond the station his map is blank.` },
+    { who: 'Shrewsbury Station', text: `Walk the streets to fill the map in. Find the ten witnesses, and the survey can finally be finished.` },
+    { who: 'How to play', text: `Walk with the arrow keys, WASD or the D-pad. Press A (Space or Enter) to talk and read. Hold B (Shift) to hurry. Mrs Rowley, the archivist, is at the library just down the street.` }
+  ],
+  cordon: (zone, have) => `A survey cordon. Thorne's notes on ${zone.name} are still a muddle. Log ${zone.unlockAt} witnesses to make sense of them (${have}/${zone.unlockAt}).`,
+  allFoundNotExplored: `All ten witnesses are logged. Thorne's map still has blank patches, though. Clear the fog from ${CONFIG.finaleExplorePct}% of the town to complete the survey.`,
+  finaleTitle: 'How Shrewsbury Grew',
+  finale: [
+    `Thorne's ten witnesses tell a single story, and it begins with the river.`,
+    `As Roman Viroconium faded, the people of the Severn valley needed somewhere defensible. They found it in a loop of the river, almost an island, closed by a single narrow neck of land. By the Norman Conquest a town stood there, and Roger de Montgomery sealed the neck with a castle and founded an abbey beyond the eastern crossing: power on one side, prayer on the other.`,
+    `The border made Shrewsbury both rich and dangerous. In 1403 a king fought for his throne three miles to the north. For two centuries afterwards the drapers turned Welsh wool into English fortunes and spent them on the timber-framed streets you have just walked.`,
+    `Then the town became a junction of roads and ideas. Its engineers raised the first iron-framed building; its inns served the coaches on the Holyhead road; a doctor's son from Frankwell went round the world and came back with a theory that changed how we understand life itself. And in the twentieth century a young teacher from Monkmoor Road wrote the poems through which Britain still remembers its war dead.`,
+    `No single witness explains the town. Together they show a place shaped by geography, enriched by trade and changed again and again by the people who came here or were born here. Some are celebrated. Many are not: the cottage weavers, the mill children, the ostlers, the fifty-one households cleared for a castle.`,
+    `Thorne's survey is finished. The town, happily, is not.`
+  ]
+};
+
+/* ---------- 8. REAL-WORLD WALKING ROUTE ---------- */
+// at: a map tile; the stop is listed as "surveyed" if the player has cleared the fog there.
+const ROUTE = [
+  { name: 'Shrewsbury Railway Station', at: [55, 17], note: `Start here. Thomas Penson's mock-Tudor station of 1848.` },
+  { name: 'Flaxmill Maltings, Ditherington', at: [55, 9], note: `About 15 minutes north along Castle Foregate and St Michael's Street. Check opening times before you go.` },
+  { name: 'Shrewsbury Castle', at: [44, 19], note: `Back past the station; the gate is on Castle Street.` },
+  { name: 'Darwin statue & the Library', at: [46, 24], note: `Castle Gates, a minute further on.` },
+  { name: 'Pride Hill', at: [48, 30], note: `Downhill into the shopping streets.` },
+  { name: "St Mary's Church", at: [58, 26], note: `Look for the Cadman plaque.` },
+  { name: "Butcher Row & the Abbot's House", at: [54, 28], note: `Off Fish Street, below St Mary's.` },
+  { name: 'Grope Lane', at: [53, 31], note: `Down the narrow lane to High Street.` },
+  { name: "The Square, Old Market Hall & Ireland's Mansion", at: [48, 36], note: `The museum is in the Music Hall, just off the Square.` },
+  { name: 'Mardol, Quantum Leap & the Welsh Bridge', at: [25, 36], note: `Downhill west, about 6 minutes.` },
+  { name: 'The Mount, Frankwell (exterior only)', at: [10, 27], note: `Across the Welsh Bridge and uphill; a private building.` },
+  { name: "St Chad's Church", at: [40, 42], note: `Back over the bridge and up to Claremont Hill.` },
+  { name: 'The Quarry & the Dingle', at: [40, 51], note: `Down the lime avenue from St Chad's.` },
+  { name: 'Town Walls Tower', at: [58, 47], note: `Along Town Walls, above the river.` },
+  { name: 'Wyle Cop & the Lion Hotel', at: [64, 39], note: `The steep street down to the English Bridge.` },
+  { name: 'English Bridge', at: [76, 44], note: `Cross the Severn eastwards.` },
+  { name: 'Shrewsbury Abbey & "Symmetry"', at: [84, 44], note: `The Owen memorial is in the abbey grounds; the refectory pulpit is across the road.` }
+];
+const ROUTE_FURTHER = [
+  { relic: 'arrow', name: 'Battlefield, 3 miles north', note: `St Mary Magdalene's Church and the battlefield walks. Best reached by bus, bicycle or car.` },
+  { relic: 'coin', name: 'Wroxeter Roman City, 5 miles south-east', note: `English Heritage site with the "Old Work" and a reconstructed Roman town house.` }
+];
+
+/* ---------- 9. TIMELINE ERAS ---------- */
+const ERAS = [
+  { name: 'Roman Britain', to: 410 },
+  { name: 'Saxon & Norman', to: 1200 },
+  { name: 'The later Middle Ages', to: 1485 },
+  { name: 'Tudor & Stuart', to: 1714 },
+  { name: 'Georgian & Industrial', to: 1837 },
+  { name: 'Victorian', to: 1901 },
+  { name: 'The twentieth century', to: 3000 }
+];
+
+/* ==========================================================================
+   ENGINE — you shouldn't need to edit below this line to change content.
+   ========================================================================== */
+
+/* ---------- Core helpers ---------- */
+const TS = CONFIG.tileSize, MW = MAP_DATA.width, MH = MAP_DATA.height;
+const T = { FIELD:0, GRASS:1, WATER:2, ROAD:3, PAVE:4, DIRT:5, BRIDGE:6, TREE:7, HEDGE:8, FLOWER:9, RAIL:10, WALL:11, BUILDING:12 };
+const WALKABLE = [false, true, false, true, true, true, true, false, false, true, false, false, false];
+const D4 = [[0,-1],[1,0],[0,1],[-1,0]];
+const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
+const idx = (x, y) => y * MW + x;
+const inb = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const inRect = (x, y, r) => x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3];
+function hash2(x, y, s = 0) {
+  let h = Math.imul(x | 0, 0x27d4eb2d) ^ Math.imul((y | 0) + 0x3c6ef372, 0x165667b1) ^ Math.imul((s | 0) + 0x5bd1e995, 0x9e3779b9);
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function distSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
+  const t = l ? clamp(((px - ax) * dx + (py - ay) * dy) / l, 0, 1) : 0;
+  const x = ax + t * dx - px, y = ay + t * dy - py;
+  return Math.sqrt(x * x + y * y);
+}
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  if (amt >= 0) { r += (255 - r) * amt; g += (255 - g) * amt; b += (255 - b) * amt; }
+  else { r *= 1 + amt; g *= 1 + amt; b *= 1 + amt; }
+  return '#' + ((1 << 24) | (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b)).toString(16).slice(1);
+}
+const $ = id => document.getElementById(id);
+
+/* ---------- World state ---------- */
+const grid = new Uint8Array(MW * MH);
+const interior = new Uint8Array(MW * MH);
+const solidProp = new Uint8Array(MW * MH);
+const reachable = new Uint8Array(MW * MH);
+const zoneGrid = new Uint8Array(MW * MH);
+const buildings = [];
+const props = [];
+const signAt = new Map(), relicAt = new Map();
+const relicById = Object.fromEntries(RELICS.map((r, i) => { r.num = i + 1; return [r.id, r]; }));
+
+/* ---------- Map generation ---------- */
+function paintRect(r, type, skipWater) {
+  for (let y = r[1]; y < r[1] + r[3]; y++) for (let x = r[0]; x < r[0] + r[2]; x++) {
+    if (!inb(x, y)) continue;
+    const i = idx(x, y);
+    if (skipWater && grid[i] === T.WATER) continue;
+    grid[i] = type;
+  }
+}
+function rasterRoad(road) {
+  const w = road.w || 2;
+  const type = road.type === 'dirt' ? T.DIRT : road.type === 'pave' ? T.PAVE : T.ROAD;
+  for (let s = 0; s < road.pts.length - 1; s++) {
+    const [ax, ay] = road.pts[s], [bx, by] = road.pts[s + 1];
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * 4));
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      const fx = Math.floor(ax + (bx - ax) * t + 1e-6), fy = Math.floor(ay + (by - ay) * t + 1e-6);
+      for (let dy = 0; dy < w; dy++) for (let dx = 0; dx < w; dx++) {
+        const x = fx + dx, y = fy + dy;
+        if (!inb(x, y)) continue;
+        const i = idx(x, y);
+        grid[i] = (grid[i] === T.WATER || grid[i] === T.BRIDGE) ? T.BRIDGE : type;
+      }
+    }
+  }
+}
+const ROOFS = ['#5a4a42', '#58627a', '#7a4a3a', '#6b5d7a', '#4f5f6f', '#6a4f3f'];
+function addBuilding(b) {
+  buildings.push(b);
+  paintRect([b.x, b.y, b.w, b.h], T.BUILDING);
+}
+function buildMap() {
+  grid.fill(T.FIELD);
+  const R = MAP_DATA.river;
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    let d = 1e9;
+    for (let k = 0; k < R.points.length - 1; k++) {
+      const a = R.points[k], b = R.points[k + 1];
+      d = Math.min(d, distSeg(x + .5, y + .5, a[0], a[1], b[0], b[1]));
+    }
+    if (d <= R.radius) grid[idx(x, y)] = T.WATER;
+  }
+  // Flood the inside of the river loop
+  const [sx, sy] = MAP_DATA.interiorSeed, top = MAP_DATA.interiorTop;
+  const stack = [idx(sx, sy)]; interior[stack[0]] = 1;
+  while (stack.length) {
+    const i = stack.pop(), x = i % MW, y = (i / MW) | 0;
+    for (const [dx, dy] of D4) {
+      const nx = x + dx, ny = y + dy;
+      if (!inb(nx, ny) || ny < top) continue;
+      const j = idx(nx, ny);
+      if (interior[j] || grid[j] === T.WATER) continue;
+      interior[j] = 1; stack.push(j);
+    }
+  }
+  for (let i = 0; i < grid.length; i++) if (interior[i]) grid[i] = T.GRASS;
+  for (const r of MAP_DATA.ground) paintRect(r, T.GRASS, true);
+  for (const p of MAP_DATA.plazas) paintRect(p.rect, p.type === 'dirt' ? T.DIRT : T.PAVE, true);
+  for (const r of MAP_DATA.hedges) paintRect(r, T.HEDGE);
+  for (const r of MAP_DATA.walls) paintRect(r, T.WALL);
+  for (const r of MAP_DATA.ponds) paintRect(r, T.WATER);
+  for (const r of MAP_DATA.rail) paintRect(r, T.RAIL);
+  for (const road of MAP_DATA.roads) rasterRoad(road);
+  for (const r of MAP_DATA.flowerbeds) paintRect(r, T.FLOWER);
+
+  MAP_DATA.buildings.forEach((b, i) => addBuilding({ x: b.rect[0], y: b.rect[1], w: b.rect[2], h: b.rect[3], kind: b.kind, name: b.name, seed: 77 + i * 13, roof: '#58627a' }));
+  MAP_DATA.terraces.forEach((t, ti) => {
+    const r = rng(1000 + ti * 31), [x0, y0, w, h] = t.rect;
+    const pick = () => t.style === 'mixed' ? ['timber', 'brick', 'stucco', 'brick', 'timber'][Math.floor(r() * 5)] : t.style;
+    if (w >= h) {
+      let x = x0;
+      while (x < x0 + w) {
+        let uw = 3 + Math.floor(r() * 3);
+        if (x0 + w - (x + uw) < 3) uw = x0 + w - x;
+        addBuilding({ x, y: y0, w: uw, h, kind: 'house', style: pick(), roof: ROOFS[Math.floor(r() * ROOFS.length)], seed: Math.floor(r() * 1e9), shop: r() < .35 });
+        x += uw;
+      }
+    } else {
+      let y = y0;
+      while (y < y0 + h) {
+        let uh = 3 + Math.floor(r() * 2);
+        if (y0 + h - (y + uh) < 3) uh = y0 + h - y;
+        addBuilding({ x: x0, y, w, h: uh, kind: 'house', style: pick(), roof: ROOFS[Math.floor(r() * ROOFS.length)], seed: Math.floor(r() * 1e9), shop: r() < .35 });
+        y += uh;
+      }
+    }
+  });
+
+  // Props & signs
+  for (const p of MAP_DATA.props) { props.push({ ...p }); solidProp[idx(p.x, p.y)] = 1; }
+  for (const s of SIGNS) { props.push({ type: s.prop || 'sign', x: s.x, y: s.y }); solidProp[idx(s.x, s.y)] = 1; signAt.set(idx(s.x, s.y), s); }
+  for (const r of RELICS) relicAt.set(idx(r.x, r.y), r);
+
+  // Reserved tiles never get trees
+  const reserved = new Uint8Array(MW * MH);
+  const reserve = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inb(x + dx, y + dy)) reserved[idx(x + dx, y + dy)] = 1; };
+  [...RELICS, ...NPCS, ...SIGNS, ...MAP_DATA.props, MAP_DATA.start].forEach(o => reserve(o.x, o.y));
+  const plantable = (x, y) => inb(x, y) && grid[idx(x, y)] === T.GRASS && !reserved[idx(x, y)] && !solidProp[idx(x, y)];
+  for (const l of MAP_DATA.treeLines) for (let y = l.from; y <= l.to; y += l.step) if (plantable(l.x, y)) grid[idx(l.x, y)] = T.TREE;
+  for (const [x, y] of MAP_DATA.trees) if (plantable(x, y)) grid[idx(x, y)] = T.TREE;
+  for (let y = 1; y < MH - 1; y++) for (let x = 1; x < MW - 1; x++) {
+    if (!plantable(x, y) || MAP_DATA.noTrees.some(r => inRect(x, y, r))) continue;
+    if (hash2(x, y, 5) > MAP_DATA.scatterDensity * (interior[idx(x, y)] ? 1 : 0.8)) continue;
+    let ok = true;
+    for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const g = grid[idx(x + dx, y + dy)];
+      if ((g !== T.GRASS && g !== T.TREE) || solidProp[idx(x + dx, y + dy)]) { ok = false; break; }
+    }
+    if (ok) grid[idx(x, y)] = T.TREE;
+  }
+
+  // Zones
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    let zi = ZONES.findIndex(z => z.rects && z.rects.some(r => inRect(x, y, r)));
+    if (zi < 0) zi = ZONES.findIndex(z => !z.rects);
+    zoneGrid[idx(x, y)] = zi;
+  }
+
+  // Reachability (ignoring zone locks) — used for the explored percentage
+  const s0 = idx(MAP_DATA.start.x, MAP_DATA.start.y);
+  const st = [s0]; reachable[s0] = 1;
+  while (st.length) {
+    const i = st.pop(), x = i % MW, y = (i / MW) | 0;
+    for (const [dx, dy] of D4) {
+      const nx = x + dx, ny = y + dy;
+      if (!inb(nx, ny)) continue;
+      const j = idx(nx, ny);
+      if (reachable[j] || !WALKABLE[grid[j]] || solidProp[j]) continue;
+      reachable[j] = 1; st.push(j);
+    }
+  }
+  // Sanity checks, reported in the console for anyone editing the data
+  for (const r of RELICS) if (!reachable[idx(r.x, r.y)]) console.warn('Relic not reachable:', r.id, r.x, r.y, grid[idx(r.x, r.y)]);
+  for (const n of NPCS) if (!reachable[idx(n.x, n.y)]) console.warn('NPC not reachable:', n.id);
+  for (const s of SIGNS) if (!D4.some(([dx, dy]) => inb(s.x + dx, s.y + dy) && reachable[idx(s.x + dx, s.y + dy)])) console.warn('Sign not readable:', s.title);
+}
+
+/* ---------- Pixel drawing helpers ---------- */
+function rect(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+function disc(g, cx, cy, r, c) {
+  g.fillStyle = c;
+  for (let yy = -r; yy <= r; yy++) { const w = Math.round(Math.sqrt(r * r - yy * yy)); g.fillRect(cx - w, cy + yy, w * 2 + 1, 1); }
+}
+function ring(g, cx, cy, r, c) {
+  g.fillStyle = c;
+  for (let a = 0; a < 360; a += 3) { const t = a * Math.PI / 180; g.fillRect(Math.round(cx + Math.cos(t) * r), Math.round(cy + Math.sin(t) * r), 1, 1); }
+}
+function tri(g, x0, y0, x1, y1, x2, y2, c) {
+  g.fillStyle = c;
+  const minX = Math.floor(Math.min(x0, x1, x2)), maxX = Math.ceil(Math.max(x0, x1, x2));
+  const minY = Math.floor(Math.min(y0, y1, y2)), maxY = Math.ceil(Math.max(y0, y1, y2));
+  const e = (ax, ay, bx, by, px, py) => (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+  const area = e(x0, y0, x1, y1, x2, y2);
+  for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+    const px = x + .5, py = y + .5;
+    const w0 = e(x1, y1, x2, y2, px, py), w1 = e(x2, y2, x0, y0, px, py), w2 = e(x0, y0, x1, y1, px, py);
+    if (area > 0 ? (w0 >= 0 && w1 >= 0 && w2 >= 0) : (w0 <= 0 && w1 <= 0 && w2 <= 0)) g.fillRect(x, y, 1, 1);
+  }
+}
+function line(g, x0, y0, x1, y1, c, w = 1) {
+  g.fillStyle = c;
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let i = 0; i <= n; i++) g.fillRect(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), w, w);
+}
+
+/* ---------- Tile art ---------- */
+const OUT = '#1e1a2e';
+function drawGrassTile(g, X, Y, x, y) {
+  rect(g, X, Y, TS, TS, '#7ccb58');
+  for (let k = 0; k < 3; k++) {
+    const bx = X + 1 + Math.floor(hash2(x, y, k) * 12), by = Y + 2 + Math.floor(hash2(x, y, k + 9) * 11);
+    rect(g, bx, by + 1, 1, 1, '#5fae44'); rect(g, bx + 1, by, 1, 1, '#5fae44'); rect(g, bx + 2, by + 1, 1, 1, '#5fae44');
+  }
+  if (hash2(x, y, 21) < .25) rect(g, X + Math.floor(hash2(x, y, 22) * 14), Y + Math.floor(hash2(x, y, 23) * 14), 2, 1, '#a6e07e');
+}
+function drawTile(g, x, y) {
+  const X = x * TS, Y = y * TS, t = grid[idx(x, y)];
+  const nb = (dx, dy) => inb(x + dx, y + dy) ? grid[idx(x + dx, y + dy)] : t;
+  switch (t) {
+    case T.FIELD: {
+      const fx = Math.floor((x + 2) / 6), fy = Math.floor((y + 1) / 5), kind = Math.floor(hash2(fx, fy, 3) * 4);
+      const cols = [['#e0cc6a', '#c9b24e'], ['#94d067', '#86c05a'], ['#b98a5a', '#a2754a'], ['#a9d873', '#9cc965']][kind];
+      rect(g, X, Y, TS, TS, cols[0]);
+      if (kind === 0) for (let r = 1; r < 16; r += 3) rect(g, X, Y + r, TS, 1, cols[1]);
+      else if (kind === 2) for (let r = 0; r < 16; r += 2) rect(g, X, Y + r, TS, 1, cols[1]);
+      else for (let k = 0; k < 3; k++) rect(g, X + Math.floor(hash2(x, y, k) * 15), Y + Math.floor(hash2(x, y, k + 4) * 15), 1, 1, cols[1]);
+      if ((x + 2) % 6 === 0) rect(g, X, Y, 3, TS, '#3f8a35');
+      if ((y + 1) % 5 === 0) rect(g, X, Y, TS, 3, '#3f8a35');
+      if ((x + 2) % 6 === 0 && (y + 1) % 5 === 0 && hash2(fx, fy, 9) < .5) { disc(g, X + 2, Y + 2, 5, '#1f5a26'); disc(g, X + 2, Y + 2, 4, '#2f8f3a'); rect(g, X, Y, 2, 2, '#4fb34f'); }
+      break;
+    }
+    case T.GRASS: case T.TREE: case T.FLOWER:
+      drawGrassTile(g, X, Y, x, y);
+      if (t === T.FLOWER) {
+        const fc = ['#e8505a', '#ffd84a', '#ffffff', '#b06ae0', '#ff8ac0'];
+        for (let k = 0; k < 6; k++) {
+          const fx = X + 2 + Math.floor(hash2(x, y, k + 30) * 11), fy = Y + 2 + Math.floor(hash2(x, y, k + 40) * 11);
+          rect(g, fx, fy, 2, 2, fc[(k + x + y) % 5]); rect(g, fx, fy + 2, 1, 1, '#3f8a35');
+        }
+      }
+      if (t === T.TREE) {
+        rect(g, X + 6, Y + 10, 4, 5, '#6b4424'); rect(g, X + 7, Y + 10, 1, 5, '#8a5a32');
+        rect(g, X + 2, Y + 14, 12, 2, 'rgba(0,0,0,.18)');
+        disc(g, X + 8, Y + 7, 7, '#1d5223'); disc(g, X + 8, Y + 7, 6, '#2f8f3a'); disc(g, X + 6, Y + 5, 3, '#4fb34f');
+        rect(g, X + 5, Y + 4, 1, 1, '#8fe07a'); rect(g, X + 10, Y + 9, 2, 1, '#257230');
+      }
+      break;
+    case T.WATER: {
+      const deep = D4.every(([dx, dy]) => nb(dx, dy) === T.WATER || nb(dx, dy) === T.BRIDGE);
+      rect(g, X, Y, TS, TS, deep ? '#3f8fdc' : '#4ba0e8');
+      for (let k = 0; k < 2; k++) rect(g, X + Math.floor(hash2(x, y, k + 50) * 11), Y + 2 + Math.floor(hash2(x, y, k + 60) * 12), 4, 1, '#79bff2');
+      const land = c => c !== T.WATER && c !== T.BRIDGE;
+      if (land(nb(0, -1))) { rect(g, X, Y, TS, 2, '#d8e9a8'); rect(g, X, Y + 2, TS, 1, '#a9daf7'); }
+      if (land(nb(0, 1))) { rect(g, X, Y + 14, TS, 2, '#2f74b8'); }
+      if (land(nb(-1, 0))) { rect(g, X, Y, 2, TS, '#cfe3a0'); rect(g, X + 2, Y, 1, TS, '#a9daf7'); }
+      if (land(nb(1, 0))) { rect(g, X + 14, Y, 2, TS, '#cfe3a0'); rect(g, X + 13, Y, 1, TS, '#a9daf7'); }
+      break;
+    }
+    case T.ROAD:
+      rect(g, X, Y, TS, TS, '#a99b7c');
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
+        const ox = X + c * 4 - (r % 2) * 2, oy = Y + r * 4;
+        if (ox < X - 2 || ox > X + 15) continue;
+        const cx0 = Math.max(ox, X), cw = Math.min(ox + 3, X + 16) - cx0;
+        if (cw <= 0) continue;
+        rect(g, cx0, oy, cw, 3, hash2(x * 5 + c, y * 4 + r, 7) < .2 ? '#bfb193' : '#cbbd9e');
+        rect(g, cx0, oy, 1, 1, '#ddd1b5');
+      }
+      break;
+    case T.PAVE:
+      rect(g, X, Y, TS, TS, '#e0d6bf');
+      rect(g, X, Y, TS, 1, '#c9bea4'); rect(g, X, Y + 8, TS, 1, '#c9bea4');
+      rect(g, X + (y % 2 ? 4 : 10), Y, 1, 8, '#c9bea4'); rect(g, X + (y % 2 ? 12 : 2), Y + 8, 1, 8, '#c9bea4');
+      break;
+    case T.DIRT:
+      rect(g, X, Y, TS, TS, '#ddc28c');
+      for (let k = 0; k < 4; k++) rect(g, X + Math.floor(hash2(x, y, k + 70) * 15), Y + Math.floor(hash2(x, y, k + 80) * 15), 1, 1, '#c2a46c');
+      break;
+    case T.BRIDGE: {
+      rect(g, X, Y, TS, TS, '#d4ad7e');
+      for (let r = 0; r < 16; r += 5) rect(g, X, Y + r, TS, 1, '#bb9265');
+      rect(g, X + (x % 2) * 8, Y, 1, TS, '#c39b6e');
+      if (nb(0, -1) === T.WATER) { rect(g, X, Y, TS, 4, '#9c7650'); rect(g, X, Y, TS, 1, '#c49a6c'); rect(g, X, Y + 4, TS, 1, 'rgba(0,0,0,.2)'); }
+      if (nb(0, 1) === T.WATER) { rect(g, X, Y + 12, TS, 4, '#9c7650'); rect(g, X, Y + 12, TS, 1, '#c49a6c'); }
+      break;
+    }
+    case T.HEDGE:
+      drawGrassTile(g, X, Y, x, y);
+      rect(g, X, Y + 1, TS, 14, '#2c6e30');
+      rect(g, X, Y + 1, TS, 11, '#3e9440');
+      for (let k = 0; k < 4; k++) disc(g, X + 2 + k * 4, Y + 4 + (k % 2), 2, '#56ad4c');
+      rect(g, X, Y + 13, TS, 2, '#24582a');
+      break;
+    case T.RAIL:
+      rect(g, X, Y, TS, TS, '#958a7a');
+      for (let k = 0; k < 5; k++) rect(g, X + Math.floor(hash2(x, y, k) * 15), Y + Math.floor(hash2(x, y, k + 5) * 15), 1, 1, '#7a7062');
+      for (let r = 1; r < 16; r += 5) rect(g, X + 1, Y + r, 14, 2, '#6b4a2e');
+      rect(g, X + 3, Y, 2, TS, '#d0d4dc'); rect(g, X + 11, Y, 2, TS, '#d0d4dc');
+      rect(g, X + 4, Y, 1, TS, '#8a8e96'); rect(g, X + 12, Y, 1, TS, '#8a8e96');
+      break;
+    case T.WALL:
+      rect(g, X, Y, TS, TS, '#8e4a35');
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) rect(g, X + c * 6 - (r % 2) * 3 + 1, Y + r * 4 + 1, 5, 3, r === 0 ? '#c97a5c' : '#b5654a');
+      rect(g, X, Y + 15, TS, 1, '#5e2f22');
+      break;
+    case T.BUILDING:
+      rect(g, X, Y, TS, TS, '#4a4054');
+      break;
+  }
+}
+
+/* ---------- Building art ---------- */
+const WALLS = { timber: '#f3ecda', brick: '#b9583f', stucco: '#efe2c0', stone: '#d9bd8e', red: '#b25a40' };
+function roofBlock(g, X, Y, W, H, col) {
+  rect(g, X, Y, W, H, shade(col, -.45));
+  const ridge = Math.floor(H * .42);
+  rect(g, X + 1, Y + 1, W - 2, ridge, shade(col, .14));
+  rect(g, X + 1, Y + 1 + ridge, W - 2, H - 2 - ridge, col);
+  for (let yy = Y + 4; yy < Y + H - 2; yy += 4) rect(g, X + 1, yy, W - 2, 1, shade(col, -.14));
+  rect(g, X + 1, Y + ridge, W - 2, 1, shade(col, .35));
+  rect(g, X + 1, Y + H - 2, W - 2, 2, 'rgba(0,0,0,.28)');
+}
+function windowPx(g, x, y, frame = '#fbf7ea', w = 5, h = 6) {
+  rect(g, x - 1, y - 1, w + 2, h + 2, frame);
+  rect(g, x, y, w, h, '#5aa7dc');
+  rect(g, x, y, w, 2, '#9fd3f5');
+  rect(g, x + Math.floor(w / 2), y, 1, h, frame);
+}
+function doorPx(g, x, y, col = '#6b3b20') {
+  rect(g, x - 1, y - 1, 8, 11, OUT); rect(g, x, y, 6, 10, col);
+  rect(g, x + 1, y + 1, 4, 3, shade(col, .15)); rect(g, x + 4, y + 5, 1, 1, '#e8c060');
+}
+function facade(g, X, Y, W, H, style, r, shop) {
+  const wall = WALLS[style] || WALLS.brick;
+  rect(g, X, Y, W, H, wall);
+  if (style === 'brick' || style === 'red') for (let yy = Y + 2; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, shade(wall, -.12));
+  if (style === 'stone') for (let yy = Y + 3; yy < Y + H; yy += 5) rect(g, X, yy, W, 1, shade(wall, -.1));
+  if (style === 'stucco') rect(g, X, Y + H - 4, W, 4, shade(wall, -.1));
+  const timber = style === 'timber';
+  if (timber) {
+    const B = '#2e2622';
+    rect(g, X, Y, W, 2, B); rect(g, X, Y + H - 2, W, 2, B);
+    for (let xx = X; xx < X + W; xx += 8) rect(g, xx, Y, 2, H, B);
+    if (H >= 20) { rect(g, X, Y + Math.floor(H / 2) - 1, W, 2, B); rect(g, X, Y + Math.floor(H / 2) + 1, W, 1, 'rgba(0,0,0,.25)'); }
+    for (let xx = X + 2; xx + 6 <= X + W; xx += 16) line(g, xx, Y + 2, xx + 5, Y + 7, B);
+  }
+  const rows = H >= 20 ? [Y + 4, Y + Math.floor(H / 2) + 3] : [Y + 4];
+  const doorX = X + 3 + Math.floor(r() * Math.max(1, W - 12));
+  rows.forEach((wy, ri) => {
+    for (let wx = X + 4; wx + 5 <= X + W - 2; wx += 10) {
+      if (ri === rows.length - 1 && Math.abs(wx - doorX) < 8) continue;
+      windowPx(g, wx, wy, timber ? '#2e2622' : '#fbf7ea');
+    }
+  });
+  doorPx(g, doorX, Y + H - 10, ['#6b3b20', '#2f4f7a', '#7a2a2a', '#2f6a3a'][Math.floor(r() * 4)]);
+  if (shop) {
+    const ac = ['#c4472f', '#2f6fb8', '#3f8a46', '#7a3fa0'][Math.floor(r() * 4)];
+    const ay = rows[rows.length - 1] - 3;
+    for (let xx = X + 1; xx < X + W - 1; xx += 4) rect(g, xx, ay, 2, 3, ac), rect(g, xx + 2, ay, 2, 3, '#fbf7ea');
+    rect(g, X + 1, ay + 3, W - 2, 1, 'rgba(0,0,0,.25)');
+  }
+  rect(g, X, Y + H - 1, W, 1, OUT);
+}
+function outline(g, X, Y, W, H) { g.strokeStyle = OUT; g.lineWidth = 1; g.strokeRect(X + .5, Y + .5, W - 1, H - 1); }
+function chimney(g, x, y) { rect(g, x - 1, y - 1, 6, 8, OUT); rect(g, x, y, 4, 7, '#a24a35'); rect(g, x, y, 4, 2, '#5a5050'); }
+function crenels(g, X, Y, W, col) {
+  for (let xx = X; xx < X + W - 2; xx += 5) { rect(g, xx, Y - 3, 4, 4, OUT); rect(g, xx + 1, Y - 2, 2, 3, col); }
+}
+function gable(g, x, y, w, h, wall, beam) {
+  tri(g, x, y + h, x + w / 2, y, x + w, y + h, beam);
+  tri(g, x + 2, y + h, x + w / 2, y + 2, x + w - 2, y + h, wall);
+  rect(g, x + w / 2 - 1, y + 2, 2, h - 2, beam);
+}
+function drawHouse(g, b) {
+  const X = b.x * TS, Y = b.y * TS, W = b.w * TS, H = b.h * TS, r = rng(b.seed);
+  const fac = b.h >= 5 ? 30 : b.h >= 3 ? 22 : 15;
+  roofBlock(g, X, Y, W, H - fac, b.roof);
+  if (r() < .8) chimney(g, X + 4 + Math.floor(r() * (W - 12)), Y + 2);
+  facade(g, X, Y + H - fac, W, fac, b.style, r, b.shop);
+  if (b.style === 'timber' && b.w >= 3 && r() < .6) gable(g, X + W / 2 - 10, Y + H - fac - 9, 20, 10, WALLS.timber, '#2e2622');
+  outline(g, X, Y, W, H);
+}
+function drawLandmark(g, b) {
+  const X = b.x * TS, Y = b.y * TS, W = b.w * TS, H = b.h * TS, r = rng(b.seed);
+  if (['church', 'abbey', 'stchad', 'kiln'].includes(b.kind))
+    for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) drawGrassTile(g, x * TS, y * TS, x, y);
+  switch (b.kind) {
+    case 'castle': {
+      const red = '#b25a40';
+      rect(g, X, Y, W, H, '#8e4a35');
+      for (let yy = Y + 2; yy < Y + H; yy += 4) for (let xx = X + ((yy / 4) % 2 ? 0 : 3); xx < X + W; xx += 7) rect(g, xx, yy, 6, 3, '#b8634a');
+      roofBlock(g, X + 26, Y + 8, W - 52, 44, '#59636f');
+      facade(g, X + 26, Y + 52, W - 52, 26, 'red', r, false);
+      crenels(g, X + 2, Y + 4, W - 4, red);
+      for (const tx of [X + 14, X + W - 14]) {
+        disc(g, tx, Y + H - 22, 15, OUT); disc(g, tx, Y + H - 22, 14, red); disc(g, tx, Y + H - 24, 11, '#c87256');
+        for (let a = 0; a < 360; a += 40) { const t = a * Math.PI / 180; rect(g, tx + Math.round(Math.cos(t) * 12) - 1, Y + H - 24 + Math.round(Math.sin(t) * 12) - 1, 3, 3, '#7a3426'); }
+        rect(g, tx - 1, Y + H - 14, 2, 6, OUT);
+      }
+      rect(g, X + W / 2 - 8, Y + H - 20, 16, 20, OUT); disc(g, X + W / 2, Y + H - 20, 7, OUT);
+      rect(g, X + W / 2 - 6, Y + H - 18, 12, 18, '#3a2a22'); disc(g, X + W / 2, Y + H - 18, 5, '#3a2a22');
+      for (let xx = X + W / 2 - 5; xx < X + W / 2 + 6; xx += 3) rect(g, xx, Y + H - 22, 1, 22, '#6b6b70');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'station': {
+      const st = '#c9b089';
+      roofBlock(g, X, Y, W, 30, '#59636f');
+      facade(g, X, Y + 30, W, H - 30, 'stone', r, false);
+      for (let xx = X + 4; xx < X + W - 6; xx += 12) { rect(g, xx, Y + 36, 7, 10, OUT); rect(g, xx + 1, Y + 37, 5, 8, '#6fb4e0'); rect(g, xx + 3, Y + 37, 1, 8, OUT); }
+      const cx = X + W / 2;
+      rect(g, cx - 13, Y - 10, 26, 44, OUT); rect(g, cx - 12, Y - 9, 24, 42, st);
+      for (let yy = Y - 6; yy < Y + 32; yy += 5) rect(g, cx - 12, yy, 24, 1, shade(st, -.12));
+      crenels(g, cx - 12, Y - 9, 24, st);
+      disc(g, cx, Y + 6, 6, OUT); disc(g, cx, Y + 6, 5, '#fbf7ea'); rect(g, cx, Y + 2, 1, 4, OUT); rect(g, cx, Y + 6, 3, 1, OUT);
+      rect(g, cx - 5, Y + 20, 10, 14, '#4a2e1e');
+      for (const px of [X + 2, X + W - 6]) { rect(g, px, Y - 6, 4, 14, OUT); rect(g, px + 1, Y - 5, 2, 12, st); }
+      rect(g, X, Y + H - 5, W, 5, '#6f2f2a'); for (let xx = X; xx < X + W; xx += 6) rect(g, xx, Y + H - 5, 3, 5, '#e8e0cc');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'library': {
+      roofBlock(g, X, Y, W, 40, '#56606c');
+      facade(g, X, Y + 40, W, H - 40, 'stone', r, false);
+      for (let xx = X + 8; xx < X + W - 10; xx += 14) {
+        rect(g, xx, Y + 46, 8, 14, OUT); tri(g, xx, Y + 46, xx + 4, Y + 40, xx + 8, Y + 46, OUT);
+        rect(g, xx + 1, Y + 46, 6, 13, '#6fb4e0'); tri(g, xx + 1, Y + 46, xx + 4, Y + 42, xx + 7, Y + 46, '#6fb4e0'); rect(g, xx + 4, Y + 42, 1, 17, OUT);
+      }
+      const tx = X + 6;
+      rect(g, tx - 1, Y + 9, 20, 64, OUT); rect(g, tx, Y + 10, 18, 62, '#d6bb8c');
+      tri(g, tx - 2, Y + 10, tx + 9, Y - 10, tx + 20, Y + 10, OUT); tri(g, tx, Y + 9, tx + 9, Y - 7, tx + 18, Y + 9, '#56606c');
+      rect(g, tx + 6, Y + 20, 6, 9, OUT); rect(g, tx + 7, Y + 21, 4, 7, '#6fb4e0');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'church': case 'abbey': {
+      const abbey = b.kind === 'abbey';
+      const stone = abbey ? '#b8634a' : '#c07a5a';
+      const tw = abbey ? 34 : 30;
+      roofBlock(g, X + tw, Y + 14, W - tw, H - 14 - 26, '#59636f');
+      facade(g, X + tw, Y + H - 26, W - tw, 26, 'red', r, false);
+      for (let xx = X + tw + 6; xx < X + W - 8; xx += 14) {
+        rect(g, xx, Y + H - 21, 7, 14, OUT); tri(g, xx, Y + H - 21, xx + 3.5, Y + H - 26, xx + 7, Y + H - 21, OUT);
+        rect(g, xx + 1, Y + H - 21, 5, 13, '#4f84c8'); rect(g, xx + 3, Y + H - 21, 1, 13, '#e6b84a');
+      }
+      const tx = X + 2, ty = Y + 18;
+      rect(g, tx - 1, ty - 1, tw, H - 17, OUT); rect(g, tx, ty, tw - 2, H - 19, stone);
+      for (let yy = ty + 4; yy < Y + H; yy += 5) rect(g, tx, yy, tw - 2, 1, shade(stone, -.15));
+      if (abbey) {
+        crenels(g, tx, ty, tw - 2, stone);
+        rect(g, tx + 8, ty + 18, 16, 26, OUT); tri(g, tx + 8, ty + 18, tx + 16, ty + 8, tx + 24, ty + 18, OUT);
+        rect(g, tx + 9, ty + 18, 14, 25, '#4f84c8'); tri(g, tx + 9, ty + 18, tx + 16, ty + 10, tx + 23, ty + 18, '#4f84c8');
+        rect(g, tx + 15, ty + 10, 2, 33, '#2a2a40'); rect(g, tx + 9, ty + 28, 14, 1, '#2a2a40');
+        rect(g, tx + 11, Y + H - 12, 10, 12, '#3a2418');
+      } else {
+        tri(g, tx - 3, ty + 1, tx + tw / 2 - 1, ty - 44, tx + tw + 1, ty + 1, OUT);
+        tri(g, tx - 1, ty, tx + tw / 2 - 1, ty - 41, tx + tw - 1, ty, '#7d8790');
+        tri(g, tx + tw / 2 - 1, ty - 41, tx + tw - 1, ty, tx + tw / 2 - 1, ty, '#626b74');
+        rect(g, tx + tw / 2 - 2, ty - 48, 2, 6, '#e6b84a');
+        rect(g, tx + 9, ty + 10, 10, 14, OUT); rect(g, tx + 10, ty + 11, 8, 12, '#4f84c8');
+        rect(g, tx + 9, Y + H - 12, 10, 12, '#3a2418');
+      }
+      outline(g, X + tw, Y + 14, W - tw, H - 14);
+      break;
+    }
+    case 'stchad': {
+      const cx = X + W / 2, cy = Y + 40;
+      disc(g, cx, cy, 38, OUT); disc(g, cx, cy, 37, '#d9cfb5');
+      disc(g, cx, cy - 2, 33, '#7f9a8f'); disc(g, cx, cy - 4, 26, '#91ad9f'); disc(g, cx, cy - 6, 16, '#a6c2b2');
+      for (let a = 0; a < 360; a += 30) { const t = a * Math.PI / 180; line(g, cx + Math.cos(t) * 8, cy - 4 + Math.sin(t) * 8, cx + Math.cos(t) * 32, cy - 2 + Math.sin(t) * 32, '#6c8679'); }
+      rect(g, cx - 13, cy + 20, 26, H - 60, OUT); rect(g, cx - 12, cy + 21, 24, H - 62, '#e3dac2');
+      for (let k = 0; k < 4; k++) rect(g, cx - 10 + k * 6, cy + 34, 3, 20, '#fbf7ea'), rect(g, cx - 9 + k * 6, cy + 34, 1, 20, '#bdb39a');
+      tri(g, cx - 13, cy + 34, cx, cy + 25, cx + 13, cy + 34, '#cfc4a8');
+      rect(g, cx - 3, Y + H - 9, 6, 9, '#3a2418');
+      disc(g, cx, cy + 16, 8, OUT); disc(g, cx, cy + 16, 7, '#e3dac2'); disc(g, cx, cy + 13, 5, '#7f9a8f'); rect(g, cx, cy + 5, 1, 5, '#e6b84a');
+      break;
+    }
+    case 'market': {
+      roofBlock(g, X, Y, W, 20, '#5d6670');
+      const st = '#d4b27c';
+      rect(g, X, Y + 20, W, H - 20, st);
+      for (let xx = X + 6; xx < X + W - 8; xx += 12) windowPx(g, xx, Y + 22, '#fbf7ea', 7, 5);
+      for (let xx = X + 3; xx < X + W - 6; xx += 13) { rect(g, xx, Y + 34, 10, 14, '#3e2f2a'); disc(g, xx + 5, Y + 35, 5, '#3e2f2a'); }
+      rect(g, X, Y + 30, W, 2, shade(st, -.2));
+      disc(g, X + W / 2, Y + 6, 6, OUT); disc(g, X + W / 2, Y + 6, 5, '#d4b27c'); disc(g, X + W / 2, Y + 4, 3, '#7f9a8f');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'abbots': case 'irelands': {
+      roofBlock(g, X, Y, W, b.kind === 'abbots' ? 24 : 18, '#4f4440');
+      const fy = Y + (b.kind === 'abbots' ? 24 : 18), fh = H - (fy - Y);
+      facade(g, X, fy, W, fh, 'timber', r, false);
+      const B = '#2e2622';
+      for (let xx = X; xx < X + W; xx += 4) rect(g, xx, fy + 2, 1, fh - 14, B);
+      rect(g, X, fy + fh - 13, W, 2, B); rect(g, X, fy + fh - 11, W, 1, 'rgba(0,0,0,.3)');
+      if (b.kind === 'abbots') {
+        for (let xx = X + 3; xx < X + W - 12; xx += 16) { rect(g, xx, fy + fh - 10, 12, 8, '#3a2a22'); rect(g, xx, fy + fh - 4, 12, 2, '#a07a4a'); }
+      } else {
+        for (let k = 0; k < 3; k++) gable(g, X + 4 + k * 30, fy - 12, 26, 14, WALLS.timber, B);
+        for (let xx = X + 5; xx < X + W - 6; xx += 11) windowPx(g, xx, fy + 6, B, 6, 6);
+        doorPx(g, X + W / 2 - 3, fy + fh - 10);
+      }
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'lion': {
+      roofBlock(g, X, Y, W, 22, '#5d6670');
+      chimney(g, X + 8, Y + 2); chimney(g, X + W - 14, Y + 2);
+      rect(g, X, Y + 22, W, H - 22, '#f4efe2');
+      for (let row = 0; row < 3; row++) for (let xx = X + 5; xx < X + W - 5; xx += 11) windowPx(g, xx, Y + 26 + row * 11, '#ffffff', 5, 7);
+      const cx = X + W / 2;
+      rect(g, cx - 9, Y + H - 13, 18, 13, '#e8e0cc'); rect(g, cx - 9, Y + H - 14, 18, 2, OUT);
+      doorPx(g, cx - 3, Y + H - 10, '#2f3f2a');
+      rect(g, cx - 6, Y + H - 22, 12, 7, '#e6b84a'); rect(g, cx - 7, Y + H - 21, 3, 4, '#c99a2e'); rect(g, cx + 3, Y + H - 24, 4, 4, '#e6b84a');
+      rect(g, cx + 5, Y + H - 23, 1, 1, OUT); rect(g, cx - 5, Y + H - 16, 2, 2, '#c99a2e'); rect(g, cx + 2, Y + H - 16, 2, 2, '#c99a2e');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'mount': {
+      roofBlock(g, X, Y, W, 26, '#59636f');
+      chimney(g, X + 10, Y + 2); chimney(g, X + W - 16, Y + 2);
+      rect(g, X, Y + 26, W, H - 26, '#c26a4a');
+      for (let yy = Y + 28; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, '#ad5c3e');
+      for (let row = 0; row < 2; row++) for (let xx = X + 6; xx < X + W - 6; xx += 12) if (!(row === 1 && Math.abs(xx - (X + W / 2 - 3)) < 8)) windowPx(g, xx, Y + 30 + row * 16, '#ffffff', 5, 8);
+      rect(g, X + W / 2 - 8, Y + H - 14, 16, 14, '#efe8d8'); doorPx(g, X + W / 2 - 3, Y + H - 10, '#2a2a40');
+      outline(g, X, Y, W, H);
+      break;
+    }
+    case 'flaxmill': {
+      roofBlock(g, X, Y, W, 30, '#59636f');
+      rect(g, X, Y + 30, W, H - 30, '#b5563e');
+      for (let yy = Y + 31; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, '#a04a34');
+      for (let row = 0; row < 5; row++) for (let xx = X + 4; xx < X + W - 4; xx += 8) { rect(g, xx, Y + 33 + row * 12, 5, 7, '#f4ead2'); rect(g, xx + 1, Y + 34 + row * 12, 3, 5, '#4f6f8f'); }
+      outline(g, X, Y, W, H);
+      rect(g, X + W - 12, Y - 4, 9, 30, OUT); rect(g, X + W - 11, Y - 3, 7, 28, '#a24a35'); rect(g, X + W - 12, Y - 4, 9, 3, '#3a3a40');
+      break;
+    }
+    case 'kiln': {
+      rect(g, X, Y + 8, W, H - 8, '#b5563e'); for (let yy = Y + 10; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, '#a04a34');
+      tri(g, X + 4, Y + 12, X + W / 2, Y - 6, X + W - 4, Y + 12, OUT); tri(g, X + 6, Y + 11, X + W / 2, Y - 3, X + W - 6, Y + 11, '#59636f');
+      rect(g, X + W / 2 - 4, Y - 10, 8, 8, OUT); rect(g, X + W / 2 - 3, Y - 9, 6, 6, '#e8e0cc');
+      outline(g, X, Y + 8, W, H - 8);
+      break;
+    }
+    default: drawHouse(g, b);
+  }
+}
+
+/* ---------- Props ---------- */
+function drawProp(g, p) {
+  const X = p.x * TS, Y = p.y * TS;
+  const shadow = () => rect(g, X + 3, Y + 13, 10, 3, 'rgba(0,0,0,.22)');
+  switch (p.type) {
+    case 'sign':
+      shadow(); rect(g, X + 7, Y + 7, 2, 8, '#5a3a1e');
+      rect(g, X + 1, Y + 1, 14, 9, OUT); rect(g, X + 2, Y + 2, 12, 7, '#d9b77a');
+      rect(g, X + 4, Y + 4, 8, 1, '#7a5a32'); rect(g, X + 4, Y + 6, 6, 1, '#7a5a32');
+      break;
+    case 'statue':
+      shadow(); rect(g, X + 1, Y + 8, 14, 8, OUT); rect(g, X + 2, Y + 9, 12, 6, '#b8b0a0'); rect(g, X + 2, Y + 9, 12, 1, '#d8d0c0');
+      rect(g, X + 3, Y - 2, 10, 11, OUT); rect(g, X + 4, Y - 1, 8, 9, '#5e5a48'); rect(g, X + 4, Y + 4, 8, 4, '#4e4a3a');
+      disc(g, X + 8, Y - 5, 4, OUT); disc(g, X + 8, Y - 5, 3, '#6e6a56'); rect(g, X + 6, Y - 3, 4, 3, '#8a8670');
+      rect(g, X + 5, Y - 1, 2, 1, '#8a8670');
+      break;
+    case 'lamp':
+      rect(g, X + 7, Y + 2, 2, 13, '#22222c'); rect(g, X + 5, Y + 13, 6, 2, '#22222c');
+      rect(g, X + 5, Y - 3, 6, 6, '#22222c'); rect(g, X + 6, Y - 2, 4, 4, '#ffe08a');
+      break;
+    case 'stall':
+      shadow(); rect(g, X + 1, Y + 7, 14, 7, '#7a5232'); rect(g, X + 1, Y + 7, 14, 1, '#a07a4a');
+      for (let k = 0; k < 5; k++) rect(g, X + 2 + k * 3, Y + 8, 2, 2, ['#e8505a', '#ffd84a', '#8bd36a', '#f0a040', '#b06ae0'][k]);
+      for (let k = 0; k < 4; k++) rect(g, X + k * 4, Y, 4, 5, k % 2 ? '#fbf7ea' : '#c4472f');
+      rect(g, X, Y + 5, 16, 1, OUT);
+      break;
+    case 'bench':
+      rect(g, X + 1, Y + 6, 14, 2, '#7a5232'); rect(g, X + 1, Y + 9, 14, 2, '#8a6240'); rect(g, X + 2, Y + 11, 2, 3, '#3a3a40'); rect(g, X + 12, Y + 11, 2, 3, '#3a3a40');
+      break;
+    case 'symmetry':
+      shadow(); rect(g, X + 1, Y + 12, 14, 3, '#9a9488');
+      for (let k = 0; k < 10; k++) { rect(g, X + 2 + Math.round(Math.sin(k / 3) * 2), Y + 2 + k, 3, 1, '#8a6a3a'); rect(g, X + 11 - Math.round(Math.sin(k / 3) * 2), Y + 2 + k, 3, 1, '#8a6a3a'); }
+      rect(g, X + 3, Y + 2, 1, 6, '#c09a5a'); rect(g, X + 12, Y + 2, 1, 6, '#c09a5a');
+      break;
+    case 'pulpit':
+      shadow(); rect(g, X + 3, Y + 4, 10, 11, OUT); rect(g, X + 4, Y + 5, 8, 9, '#b8634a');
+      tri(g, X + 2, Y + 5, X + 8, Y - 4, X + 14, Y + 5, OUT); tri(g, X + 4, Y + 4, X + 8, Y - 2, X + 12, Y + 4, '#9a5a42');
+      rect(g, X + 6, Y + 7, 4, 5, '#3a2418');
+      break;
+    case 'sabrina':
+      shadow(); rect(g, X + 3, Y + 9, 10, 6, '#b8b0a0'); rect(g, X + 3, Y + 9, 10, 1, '#d8d0c0');
+      rect(g, X + 6, Y, 4, 10, '#f2efe6'); disc(g, X + 8, Y - 2, 2, '#f2efe6'); rect(g, X + 5, Y + 4, 6, 6, '#e6e1d4');
+      break;
+    case 'quantum':
+      shadow();
+      for (let k = 0; k <= 12; k++) { const t = k / 12 * Math.PI; rect(g, X + 1 + k, Y + 12 - Math.round(Math.sin(t) * 12), 3, 3, k % 2 ? '#9aa2ac' : '#c8ced6'); }
+      break;
+    case 'tower': case 'wallTower': {
+      const c = '#b25a40';
+      rect(g, X + 1, Y - 6, 14, 21, OUT); rect(g, X + 2, Y - 5, 12, 19, c);
+      for (let yy = Y - 2; yy < Y + 14; yy += 4) rect(g, X + 2, yy, 12, 1, '#8e4a35');
+      for (let xx = X + 1; xx < X + 15; xx += 4) rect(g, xx, Y - 9, 3, 4, OUT), rect(g, xx + 1, Y - 8, 1, 3, c);
+      rect(g, X + 6, Y + 2, 3, 5, '#2a1a14');
+      break;
+    }
+    case 'milestone':
+      shadow(); rect(g, X + 4, Y + 3, 8, 12, OUT); rect(g, X + 5, Y + 4, 6, 10, '#d8d0c0'); disc(g, X + 8, Y + 4, 4, OUT); disc(g, X + 8, Y + 4, 3, '#d8d0c0');
+      rect(g, X + 6, Y + 6, 4, 1, '#6a6458'); rect(g, X + 6, Y + 9, 4, 1, '#6a6458');
+      break;
+  }
+}
+
+/* ---------- Pre-rendered map ---------- */
+const mapCanvas = document.createElement('canvas');
+mapCanvas.width = MW * TS; mapCanvas.height = MH * TS;
+const mmBase = document.createElement('canvas');
+mmBase.width = MW; mmBase.height = MH;
+function renderMap() {
+  const g = mapCanvas.getContext('2d');
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) drawTile(g, x, y);
+  const sorted = [...buildings].sort((a, b) => (a.y + a.h) - (b.y + b.h));
+  for (const b of sorted) b.kind === 'house' ? drawHouse(g, b) : drawLandmark(g, b);
+  for (const p of [...props].sort((a, b) => a.y - b.y)) drawProp(g, p);
+  // minimap base
+  const m = mmBase.getContext('2d');
+  const MMC = ['#6f9f4e', '#7ccb58', '#4ba0e8', '#e2d6bb', '#efe5cf', '#ddc28c', '#e6c68e', '#2f8f3a', '#3e9440', '#e88aa8', '#6b5d50', '#b5654a', '#9a5a48'];
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { m.fillStyle = MMC[grid[idx(x, y)]]; m.fillRect(x, y, 1, 1); }
+  for (const b of buildings) { m.fillStyle = b.kind === 'house' ? b.roof : '#c0583a'; m.fillRect(b.x, b.y, b.w, b.h); }
+}
+
+/* ---------- Relic pixel art (32x32, drawn in code) ---------- */
+const RELIC_ART = {
+  coin(g) {
+    disc(g, 16, 16, 13, '#5e4318'); disc(g, 16, 16, 12, '#b88a3a'); disc(g, 16, 16, 10, '#c99c48');
+    for (let a = 0; a < 360; a += 20) { const t = a * Math.PI / 180; rect(g, Math.round(16 + Math.cos(t) * 11), Math.round(16 + Math.sin(t) * 11), 1, 1, '#8a6424'); }
+    disc(g, 15, 14, 5, '#8a6424'); disc(g, 15, 14, 4, '#a37a34'); rect(g, 13, 18, 5, 5, '#8a6424');
+    rect(g, 10, 14, 1, 2, '#8a6424'); rect(g, 12, 13, 1, 1, '#5e4318');
+    for (const [x, y] of [[19, 10], [20, 12], [20, 14], [19, 16]]) rect(g, x, y, 2, 1, '#6f8f4a');
+    for (const [x, y] of [[8, 9], [22, 22], [11, 23], [24, 12]]) rect(g, x, y, 2, 2, '#6f9a7a');
+    for (let a = 200; a < 290; a += 6) { const t = a * Math.PI / 180; rect(g, Math.round(16 + Math.cos(t) * 9), Math.round(16 + Math.sin(t) * 9), 1, 1, '#e6c374'); }
+  },
+  castle(g) {
+    tri(g, 4, 12, 9, 7, 28, 9, '#c87256'); rect(g, 4, 12, 22, 14, '#7a3426'); rect(g, 5, 12, 20, 13, '#b0583f');
+    tri(g, 26, 9, 28, 9, 26, 26, '#7a3426'); rect(g, 26, 10, 2, 15, '#94452f'); rect(g, 5, 12, 20, 2, '#c87256');
+    line(g, 7, 16, 11, 23, '#8a3d2a'); line(g, 18, 15, 22, 22, '#8a3d2a');
+    line(g, 14, 15, 14, 22, '#5e2416', 2); line(g, 11, 18, 18, 18, '#5e2416', 2);
+    for (const [x, y] of [[6, 24], [8, 23], [23, 13], [24, 14], [20, 24]]) rect(g, x, y, 2, 1, '#5f8f3a');
+    rect(g, 4, 26, 24, 2, 'rgba(0,0,0,.2)');
+  },
+  seal(g) {
+    for (let a = 0; a < 360; a += 30) { const t = a * Math.PI / 180; disc(g, Math.round(16 + Math.cos(t) * 11), Math.round(16 + Math.sin(t) * 11), 3, '#9a2a24'); }
+    disc(g, 16, 16, 12, '#7a1e1e'); disc(g, 16, 16, 11, '#b8322a'); ring(g, 16, 16, 8, '#8e2420');
+    line(g, 10, 10, 22, 22, '#f0c8a8', 2); line(g, 22, 10, 10, 22, '#f0c8a8', 2);
+    ring(g, 9, 9, 2, '#f0c8a8'); ring(g, 23, 9, 2, '#f0c8a8');
+    rect(g, 20, 21, 3, 2, '#f0c8a8'); rect(g, 9, 21, 3, 2, '#f0c8a8');
+    rect(g, 11, 11, 1, 1, '#ffffff'); rect(g, 8, 20, 2, 1, '#d84a3a');
+    rect(g, 13, 28, 6, 4, '#d9c79a'); rect(g, 13, 28, 6, 1, '#b8a678');
+  },
+  arrow(g) {
+    line(g, 4, 28, 14, 18, '#8a5a2a', 2); line(g, 5, 28, 14, 19, '#b07a42');
+    rect(g, 3, 27, 2, 1, '#c4a070'); rect(g, 4, 29, 1, 2, '#c4a070');
+    line(g, 14, 18, 18, 14, '#555a64', 3);
+    tri(g, 16, 13, 19, 16, 28, 4, '#6d727c'); tri(g, 17, 14, 18, 15, 27, 5, '#b9bec7');
+    rect(g, 15, 16, 2, 2, '#9a5a32'); rect(g, 21, 10, 1, 1, '#9a5a32'); rect(g, 19, 13, 1, 1, '#9a5a32');
+  },
+  beam(g) {
+    rect(g, 2, 11, 28, 11, '#3a2414'); rect(g, 3, 12, 26, 9, '#8a5a32'); rect(g, 3, 12, 26, 2, '#a8743f');
+    for (const [y, x0, x1] of [[15, 6, 20], [17, 10, 27], [19, 4, 14]]) rect(g, x0, y, x1 - x0, 1, '#6e4527');
+    rect(g, 3, 12, 4, 9, '#a7774a'); ring(g, 5, 16, 1, '#7a5232');
+    for (let k = 0; k < 4; k++) rect(g, 10 + k * 2, 14, 1, 5, '#2b1a0e');
+    line(g, 19, 14, 21, 18, '#2b1a0e'); line(g, 23, 14, 21, 18, '#2b1a0e');
+    disc(g, 26, 16, 1, '#2b1a0e');
+    rect(g, 22, 6, 8, 5, '#3a2414'); rect(g, 23, 7, 6, 4, '#efe9d8'); rect(g, 25, 7, 1, 4, '#3a2414');
+  },
+  ledger(g) {
+    rect(g, 2, 8, 28, 20, '#4a2614'); rect(g, 3, 9, 26, 18, '#6b3a1f');
+    rect(g, 4, 7, 12, 19, '#f2e8cc'); rect(g, 16, 7, 12, 19, '#f7efd8'); rect(g, 15, 7, 2, 19, '#c8b88f');
+    for (let k = 0; k < 7; k++) { rect(g, 5, 9 + k * 2, 4 + Math.floor(hash2(k, 1) * 6), 1, '#3d3a5a'); rect(g, 18, 9 + k * 2, 3 + Math.floor(hash2(k, 2) * 4), 1, '#3d3a5a'); rect(g, 24, 9 + k * 2, 3, 1, '#7a2f22'); }
+    rect(g, 22, 24, 2, 7, '#b8322a'); rect(g, 22, 30, 1, 1, '#b8322a');
+  },
+  finch(g) {
+    rect(g, 6, 5, 22, 24, '#c9b98f'); rect(g, 5, 4, 22, 24, '#efe4c4');
+    const P = '#5a5650';
+    ring(g, 13, 12, 3, P); ring(g, 18, 17, 5, P);
+    tri(g, 8, 11, 10, 10, 10, 14, P); rect(g, 13, 11, 1, 1, P);
+    line(g, 22, 19, 26, 22, P); line(g, 22, 20, 25, 24, P);
+    line(g, 16, 22, 15, 25, P); line(g, 19, 22, 19, 25, P);
+    for (let k = 0; k < 3; k++) rect(g, 8, 25 + k, 6 + k * 3, 1, '#9a948a');
+    rect(g, 20, 6, 5, 1, '#9a948a');
+  },
+  iron(g) {
+    rect(g, 7, 3, 18, 5, '#2a2f38'); rect(g, 8, 4, 16, 3, '#5a6474'); rect(g, 8, 4, 16, 1, '#8a96a6');
+    rect(g, 11, 8, 10, 19, '#2a2f38'); rect(g, 12, 8, 8, 18, '#4f5866'); rect(g, 13, 8, 2, 18, '#7f8a99'); rect(g, 18, 8, 2, 18, '#353c47');
+    for (const [x, y] of [[12, 26], [14, 27], [16, 26], [18, 28], [19, 26]]) rect(g, x, y, 2, 2, '#4f5866');
+    for (const [x, y, c] of [[16, 12, '#9a5a32'], [13, 18, '#b8743f'], [18, 21, '#9a5a32'], [10, 5, '#9a5a32']]) rect(g, x, y, 2, 2, c);
+    rect(g, 9, 5, 1, 1, '#c8d0dc'); rect(g, 22, 5, 1, 1, '#c8d0dc');
+  },
+  horn(g) {
+    line(g, 5, 26, 21, 10, '#7a5a12', 3); line(g, 5, 25, 21, 9, '#c99a2e', 2); line(g, 6, 25, 21, 10, '#f0d37a');
+    disc(g, 24, 7, 5, '#7a5a12'); disc(g, 24, 7, 4, '#d9aa3e'); disc(g, 25, 6, 2, '#5a3a0a');
+    rect(g, 2, 27, 4, 3, '#a8801f'); rect(g, 2, 27, 4, 1, '#f0d37a');
+    line(g, 10, 21, 13, 25, '#b8322a'); line(g, 13, 25, 16, 21, '#b8322a'); rect(g, 12, 26, 2, 3, '#b8322a');
+  },
+  poet(g) {
+    rect(g, 6, 4, 19, 25, '#2a2418'); rect(g, 7, 5, 17, 23, '#6b5a3a'); rect(g, 7, 5, 17, 2, '#857150');
+    rect(g, 20, 5, 2, 23, '#2b2420');
+    rect(g, 9, 9, 9, 6, '#e8dcc0'); rect(g, 10, 11, 6, 1, '#5a5650'); rect(g, 10, 13, 4, 1, '#5a5650');
+    rect(g, 8, 28, 15, 1, '#f2e8cc');
+    line(g, 16, 28, 28, 16, '#2a2418', 3); line(g, 16, 27, 27, 16, '#d9a83a', 2);
+    rect(g, 15, 28, 2, 2, '#3a3a3a'); rect(g, 27, 15, 2, 2, '#d98a8a');
+  }
+};
+const relicImg = {};
+function renderRelicArt() {
+  for (const r of RELICS) {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    RELIC_ART[r.id](c.getContext('2d'));
+    relicImg[r.id] = c.toDataURL();
+  }
+}
+
+/* ---------- People ---------- */
+function drawPerson(g, x, y, dir, frame, L) {
+  const ox = Math.round(x), oy = Math.round(y) - 6;
+  rect(g, ox + 4, oy + 20, 8, 2, 'rgba(0,0,0,.25)'); rect(g, ox + 3, oy + 21, 10, 1, 'rgba(0,0,0,.15)');
+  if (dir === 'left' || dir === 'right') {
+    g.save();
+    if (dir === 'left') { g.translate(ox * 2 + 16, 0); g.scale(-1, 1); }
+    // legs
+    const a = frame === 1 ? 1 : frame === 2 ? -1 : 0;
+    if (!L.skirt) {
+      rect(g, ox + 5 - a, oy + 15, 4, 5, OUT); rect(g, ox + 6 - a, oy + 15, 2, 4, shade(L.legs, -.2));
+      rect(g, ox + 7 + a, oy + 15, 4, 5, OUT); rect(g, ox + 8 + a, oy + 15, 2, 4, L.legs);
+    } else { rect(g, ox + 5 - a, oy + 18, 3, 2, OUT); rect(g, ox + 8 + a, oy + 18, 3, 2, OUT); }
+    rect(g, ox + 4, oy + 9, 8, L.skirt ? 10 : 8, OUT); rect(g, ox + 5, oy + 10, 6, L.skirt ? 8 : 6, L.coat);
+    if (L.scarf) rect(g, ox + 5, oy + 9, 6, 2, L.scarf);
+    if (L.satchel) rect(g, ox + 4, oy + 12, 3, 4, L.satchel);
+    rect(g, ox + 7 + a, oy + 10, 3, 6, OUT); rect(g, ox + 8 + a, oy + 11, 1, 4, shade(L.coat, .15)); rect(g, ox + 8 + a, oy + 15, 1, 1, L.skin);
+    rect(g, ox + 3, oy + 1, 10, 9, OUT); rect(g, ox + 4, oy + 2, 8, 7, L.skin);
+    rect(g, ox + 4, oy + 2, 8, 2, L.hair); rect(g, ox + 4, oy + 2, 4, 6, L.hair);
+    rect(g, ox + 10, oy + 5, 1, 2, OUT); rect(g, ox + 12, oy + 6, 1, 1, L.skin);
+    hat(g, ox, oy, L, true);
+    g.restore();
+    return;
+  }
+  const l1 = frame === 1 ? -1 : 0, l2 = frame === 2 ? -1 : 0;
+  if (!L.skirt) {
+    rect(g, ox + 4, oy + 15 + l1, 4, 5, OUT); rect(g, ox + 5, oy + 15 + l1, 2, 4, L.legs);
+    rect(g, ox + 8, oy + 15 + l2, 4, 5, OUT); rect(g, ox + 9, oy + 15 + l2, 2, 4, L.legs);
+  } else { rect(g, ox + 5, oy + 18 + l1, 3, 2, OUT); rect(g, ox + 8, oy + 18 + l2, 3, 2, OUT); }
+  rect(g, ox + 3, oy + 9, 10, L.skirt ? 10 : 8, OUT); rect(g, ox + 4, oy + 10, 8, L.skirt ? 8 : 6, L.coat);
+  rect(g, ox + 4, oy + 10, 1, L.skirt ? 8 : 6, shade(L.coat, .18));
+  if (dir === 'down') {
+    if (L.scarf) { rect(g, ox + 4, oy + 9, 8, 2, L.scarf); rect(g, ox + 9, oy + 11, 2, 3, L.scarf); }
+    else rect(g, ox + 7, oy + 10, 2, 3, L.accent || '#fff');
+    if (L.satchel) line(g, ox + 4, oy + 10, ox + 11, oy + 15, L.satchel);
+  } else if (L.satchel) rect(g, ox + 5, oy + 11, 6, 4, L.satchel);
+  rect(g, ox + 2, oy + 10 + l2, 2, 6, OUT); rect(g, ox + 2, oy + 15 + l2, 2, 1, L.skin);
+  rect(g, ox + 12, oy + 10 + l1, 2, 6, OUT); rect(g, ox + 12, oy + 15 + l1, 2, 1, L.skin);
+  rect(g, ox + 3, oy + 1, 10, 9, OUT); rect(g, ox + 4, oy + 2, 8, 7, L.skin);
+  if (dir === 'down') {
+    rect(g, ox + 4, oy + 2, 8, 2, L.hair); rect(g, ox + 4, oy + 4, 1, 2, L.hair); rect(g, ox + 11, oy + 4, 1, 2, L.hair);
+    rect(g, ox + 6, oy + 5, 1, 2, OUT); rect(g, ox + 9, oy + 5, 1, 2, OUT);
+    rect(g, ox + 5, oy + 7, 1, 1, '#f0a0a0'); rect(g, ox + 10, oy + 7, 1, 1, '#f0a0a0');
+  } else rect(g, ox + 4, oy + 2, 8, 6, L.hair);
+  hat(g, ox, oy, L, false);
+}
+function hat(g, ox, oy, L, side) {
+  if (!L.hat) return;
+  const c = L.hatCol || '#333';
+  if (L.hat === 'cap') { rect(g, ox + 3, oy, 10, 4, OUT); rect(g, ox + 4, oy + 1, 8, 2, c); rect(g, ox + (side ? 9 : 3), oy + 3, side ? 5 : 10, 1, shade(c, -.3)); }
+  if (L.hat === 'bowler') { rect(g, ox + 4, oy - 2, 8, 5, OUT); rect(g, ox + 5, oy - 1, 6, 3, c); rect(g, ox + 2, oy + 2, 12, 2, OUT); rect(g, ox + 3, oy + 2, 10, 1, c); }
+}
+const PLAYER_LOOK = { coat: '#2e7d8c', legs: '#36395a', skin: '#efc59f', hair: '#5a3a22', scarf: '#d0453a', satchel: '#8a5a2a' };
+
+/* ---------- Game state ---------- */
+const state = {
+  mode: 'title',
+  found: [], met: {}, flags: {}, sound: true,
+  unlockedZones: new Set(['centre'])
+};
+const player = { tx: MAP_DATA.start.x, ty: MAP_DATA.start.y, px: 0, py: 0, dir: 'down', moving: false, fx: 0, fy: 0, t: 0, step: 0 };
+const npcs = NPCS.map(n => ({ ...n, baseDir: n.dir, turnT: 2 + Math.random() * 3 }));
+const npcAt = new Map(npcs.map(n => [idx(n.x, n.y), n]));
+let time = 0;
+
+/* ---------- Fog of war ---------- */
+const FW = MW * 2, FH = MH * 2;
+const fog = new Uint8Array(FW * FH);
+const fogCanvas = document.createElement('canvas'); fogCanvas.width = FW; fogCanvas.height = FH;
+const fogCtx = fogCanvas.getContext('2d');
+const fogImg = fogCtx.createImageData(FW, FH);
+const cellExplorable = new Uint8Array(FW * FH);
+let totalExplorable = 0, exploredCount = 0, fogDirty = false, lastRevealX = -999, lastRevealY = -999;
+function initFog() {
+  for (let i = 0; i < FW * FH; i++) {
+    const cx = i % FW, cy = (i / FW) | 0;
+    cellExplorable[i] = reachable[idx(cx >> 1, cy >> 1)];
+    fogImg.data[i * 4] = 23; fogImg.data[i * 4 + 1] = 21; fogImg.data[i * 4 + 2] = 46;
+  }
+  totalExplorable = cellExplorable.reduce((a, b) => a + b, 0);
+  refreshFogAll();
+}
+function refreshFogAll() {
+  exploredCount = 0;
+  for (let i = 0; i < FW * FH; i++) {
+    fogImg.data[i * 4 + 3] = 255 - fog[i];
+    if (cellExplorable[i] && fog[i] >= 128) exploredCount++;
+  }
+  fogCtx.putImageData(fogImg, 0, 0);
+}
+function revealAt(pxX, pxY) {
+  const cx = pxX / 8, cy = pxY / 8, R = CONFIG.fogRadius * 2;
+  let changed = false, x0 = FW, y0 = FH, x1 = 0, y1 = 0;
+  for (let y = Math.max(0, Math.floor(cy - R)); y <= Math.min(FH - 1, Math.ceil(cy + R)); y++) {
+    for (let x = Math.max(0, Math.floor(cx - R)); x <= Math.min(FW - 1, Math.ceil(cx + R)); x++) {
+      const d = Math.hypot(x + .5 - cx, y + .5 - cy);
+      if (d >= R) continue;
+      let v = clamp((R - d) / (R * .45), 0, 1); v = v * v * (3 - 2 * v);
+      const val = Math.round(v * 255), i = y * FW + x;
+      if (val > fog[i]) {
+        if (cellExplorable[i] && fog[i] < 128 && val >= 128) exploredCount++;
+        fog[i] = val; fogImg.data[i * 4 + 3] = 255 - val; changed = true;
+        if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (changed) { fogCtx.putImageData(fogImg, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1); fogDirty = true; }
+}
+const explorePct = () => totalExplorable ? exploredCount / totalExplorable * 100 : 0;
+const tileRevealed = (x, y) => fog[(y * 2 + 1) * FW + x * 2 + 1] >= 128;
+
+/* ---------- Zones ---------- */
+const zoneAt = (x, y) => ZONES[zoneGrid[idx(x, y)]];
+const zoneOpen = z => state.found.length >= z.unlockAt;
+let barrierTiles = [];
+function computeBarriers() {
+  barrierTiles = [];
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    const i = idx(x, y);
+    if (!WALKABLE[grid[i]] || solidProp[i] || zoneOpen(zoneAt(x, y))) continue;
+    if (D4.some(([dx, dy]) => inb(x + dx, y + dy) && WALKABLE[grid[idx(x + dx, y + dy)]] && zoneOpen(zoneAt(x + dx, y + dy)))) barrierTiles.push([x, y]);
+  }
+}
+function blockedReason(x, y) {
+  if (!inb(x, y)) return 'edge';
+  const i = idx(x, y);
+  if (!WALKABLE[grid[i]] || solidProp[i] || npcAt.has(i)) return 'solid';
+  if (!zoneOpen(zoneAt(x, y))) return 'zone';
+  return null;
+}
+
+/* ---------- Canvas & camera ---------- */
+const canvas = $('game'), ctx = canvas.getContext('2d');
+let VW = 320, VH = 240, scale = 3, camX = 0, camY = 0;
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  scale = Math.max(2, Math.floor(Math.min(w / 300, h / 210)));
+  if (w < 500) scale = Math.max(2, Math.floor(w / 200));
+  VW = Math.ceil(w / scale); VH = Math.ceil(h / scale);
+  canvas.width = VW; canvas.height = VH;
+  canvas.style.width = (VW * scale) + 'px'; canvas.style.height = (VH * scale) + 'px';
+}
+function setCamera(cx, cy) {
+  const mw = MW * TS, mh = MH * TS;
+  camX = VW >= mw ? -(VW - mw) / 2 : clamp(Math.round(cx - VW / 2), 0, mw - VW);
+  camY = VH >= mh ? -(VH - mh) / 2 : clamp(Math.round(cy - VH / 2), 0, mh - VH);
+  camX = Math.round(camX); camY = Math.round(camY);
+}
+
+/* ---------- Rendering ---------- */
+function drawWaterShimmer() {
+  const x0 = Math.max(0, Math.floor(camX / TS)), y0 = Math.max(0, Math.floor(camY / TS));
+  const x1 = Math.min(MW - 1, Math.ceil((camX + VW) / TS)), y1 = Math.min(MH - 1, Math.ceil((camY + VH) / TS));
+  ctx.fillStyle = 'rgba(220,240,255,.75)';
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (grid[idx(x, y)] !== T.WATER) continue;
+    const ph = (time * 0.8 + hash2(x, y, 99) * 4) % 4;
+    if (ph < 1) {
+      const sx = x * TS - camX + 3 + Math.floor(hash2(x, y, 98) * 7), sy = y * TS - camY + 5 + Math.floor(hash2(x, y, 97) * 7);
+      ctx.fillRect(sx + Math.floor(ph * 3), sy, 3, 1);
+    }
+  }
+}
+function drawBarriers() {
+  for (const [x, y] of barrierTiles) {
+    const X = x * TS - camX, Y = y * TS - camY;
+    if (X < -16 || Y < -16 || X > VW || Y > VH) continue;
+    rect(ctx, X + 2, Y + 9, 2, 7, '#5a3a1e'); rect(ctx, X + 12, Y + 9, 2, 7, '#5a3a1e');
+    rect(ctx, X, Y + 5, 16, 5, OUT);
+    for (let k = 0; k < 4; k++) rect(ctx, X + 1 + k * 4, Y + 6, 2, 3, '#c4472f'), rect(ctx, X + 3 + k * 4, Y + 6, 2, 3, '#fbf7ea');
+    if ((time * 2 + x) % 2 < 1) rect(ctx, X + 7, Y + 2, 2, 2, '#ffb030');
+  }
+}
+function sparkle(g, x, y, s, a, col) {
+  g.globalAlpha = a; g.fillStyle = col;
+  g.fillRect(x - s, y, s * 2 + 1, 1); g.fillRect(x, y - s, 1, s * 2 + 1);
+  if (s > 1) g.fillRect(x - 1, y - 1, 3, 3);
+  g.globalAlpha = 1;
+}
+function drawRelics() {
+  for (const r of RELICS) {
+    if (state.found.includes(r.id)) continue;
+    const d = Math.hypot(player.px / TS - r.x, player.py / TS - r.y);
+    if (d > CONFIG.sparkleRange) continue;
+    const X = r.x * TS - camX + 8, Y = r.y * TS - camY + 8;
+    const a = clamp(1 - d / CONFIG.sparkleRange, 0, 1) * .9 + .1;
+    if (d < 2.5) {
+      ctx.globalAlpha = .35 + .2 * Math.sin(time * 4); disc(ctx, X, Y + 2, 5, '#ffe9a0'); ctx.globalAlpha = 1;
+      rect(ctx, X - 2, Y, 5, 5, OUT); rect(ctx, X - 1, Y + 1, 3, 3, '#ffd34a');
+    }
+    for (let k = 0; k < 3; k++) {
+      const ph = (time * 1.3 + k / 3) % 1;
+      const ang = k * 2.1 + Math.floor(time * 1.3 + k / 3) * 1.7;
+      const sx = Math.round(X + Math.cos(ang) * 6), sy = Math.round(Y - 2 + Math.sin(ang) * 5 - ph * 3);
+      sparkle(ctx, sx, sy, ph < .5 ? 2 : 1, a * (1 - Math.abs(ph - .5) * 1.4), k ? '#fff6c0' : '#ffffff');
+    }
+  }
+}
+function drawEntities() {
+  const list = npcs.map(n => ({ y: n.y * TS, draw: () => {
+    const X = n.x * TS - camX, Y = n.y * TS - camY;
+    drawPerson(ctx, X, Y, n.dir, 0, n.look);
+    if (!state.met[n.id] && tileRevealed(n.x, n.y)) {
+      const by = Y - 18 + Math.round(Math.sin(time * 3) * 1.5);
+      rect(ctx, X + 4, by, 9, 7, OUT); rect(ctx, X + 5, by + 1, 7, 5, '#fff'); rect(ctx, X + 6, by + 7, 2, 2, OUT);
+      rect(ctx, X + 6, by + 3, 1, 1, OUT); rect(ctx, X + 8, by + 3, 1, 1, OUT); rect(ctx, X + 10, by + 3, 1, 1, OUT);
+    }
+  } }));
+  list.push({ y: player.py, draw: () => {
+    const fr = player.moving ? (player.t < .5 ? (player.step % 2 ? 1 : 2) : 0) : 0;
+    drawPerson(ctx, player.px - camX, player.py - camY, player.dir, fr, PLAYER_LOOK);
+  } });
+  list.sort((a, b) => a.y - b.y).forEach(e => e.draw());
+}
+function drawFog() {
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(fogCanvas, -camX, -camY, FW * 8, FH * 8);
+  ctx.imageSmoothingEnabled = false;
+}
+function render() {
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#17152e'; ctx.fillRect(0, 0, VW, VH);
+  if (state.mode === 'title') {
+    const t = time * .05;
+    setCamera(48 * TS + Math.cos(t) * 22 * TS, 38 * TS + Math.sin(t * 1.3) * 16 * TS);
+  } else setCamera(player.px + 8, player.py + 4);
+  ctx.drawImage(mapCanvas, -camX, -camY);
+  drawWaterShimmer();
+  if (state.mode === 'title') return;
+  drawBarriers();
+  drawRelics();
+  drawEntities();
+  drawFog();
+}
+
+/* ---------- Input ---------- */
+const held = [];   // stack of held directions (most recent last)
+let runHeld = false, touchDir = null, tapDir = null;
+const KEYDIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+window.addEventListener('keydown', e => {
+  ensureAudio();
+  if (state.mode === 'modal') {
+    if (e.code === 'Escape') { e.preventDefault(); closeModal(); }
+    return;
+  }
+  if (state.mode === 'title') return;
+  const d = KEYDIR[e.code];
+  if (d) { e.preventDefault(); if (!held.includes(d)) held.push(d); if (!e.repeat) tapDir = d; return; }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') { runHeld = true; return; }
+  if (e.repeat) return;
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') { e.preventDefault(); pressA(); }
+  else if (state.mode === 'play') {
+    if (e.code === 'Escape' || e.code === 'KeyP') openMenu();
+    else if (e.code === 'KeyJ') openModal(journalView);
+    else if (e.code === 'KeyT') openModal(timelineView);
+    else if (e.code === 'KeyM') openModal(mapView);
+  }
+});
+window.addEventListener('keyup', e => {
+  const d = KEYDIR[e.code];
+  if (d) { const k = held.indexOf(d); if (k >= 0) held.splice(k, 1); }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') runHeld = false;
+});
+window.addEventListener('blur', () => { held.length = 0; runHeld = false; touchDir = null; });
+function currentDir() { return touchDir || held[held.length - 1] || null; }
+
+function setupTouch() {
+  const isTouch = ('ontouchstart' in window) || window.matchMedia('(pointer: coarse)').matches;
+  if (isTouch) document.body.classList.add('touch');
+  window.addEventListener('touchstart', () => document.body.classList.add('touch'), { once: true, passive: true });
+  const pad = $('dpad');
+  let padId = null;
+  const fromPoint = e => {
+    const r = pad.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    if (Math.hypot(dx, dy) < 12) return null;
+    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+  };
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); padId = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (err) {} touchDir = fromPoint(e); });
+  pad.addEventListener('pointermove', e => { if (e.pointerId === padId) touchDir = fromPoint(e); });
+  const end = e => { if (e.pointerId === padId) { padId = null; touchDir = null; } };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end); pad.addEventListener('lostpointercapture', end);
+  const btn = (el, down, up) => {
+    el.addEventListener('pointerdown', e => { e.preventDefault(); ensureAudio(); el.classList.add('pressed'); down(); });
+    const u = () => { el.classList.remove('pressed'); up && up(); };
+    el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
+  };
+  btn($('btnA'), () => pressA());
+  btn($('btnB'), () => { runHeld = true; if (state.mode === 'dialogue') pressA(); }, () => { runHeld = false; });
+  canvas.addEventListener('pointerdown', () => { if (state.mode === 'dialogue') pressA(); });
+}
+
+/* ---------- Sound (tiny synth blips, no music) ---------- */
+let actx = null;
+function ensureAudio() {
+  if (!state.sound) return null;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { actx = null; }
+  return actx;
+}
+function tone(freq, dur, type = 'square', vol = .04, delay = 0) {
+  const a = state.sound && actx; if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + delay;
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + .02);
+}
+const sfx = {
+  blip: () => tone(740, .025, 'square', .015),
+  select: () => { tone(660, .05, 'square', .03); tone(990, .06, 'square', .03, .05); },
+  bump: () => tone(110, .07, 'triangle', .06),
+  relic: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', .06, i * .08)),
+  unlock: () => [392, 523, 659, 784].forEach((f, i) => tone(f, .35, 'square', .03, i * .12))
+};
+
+/* ---------- Dialogue ---------- */
+const dlg = { queue: [], cur: null, shown: 0, onEnd: null, lastBlip: 0 };
+function say(lines, onEnd) {
+  dlg.queue = lines.map(l => typeof l === 'string' ? { who: '', text: l } : l);
+  dlg.onEnd = onEnd || null;
+  state.mode = 'dialogue';
+  held.length = 0;
+  $('dialogue').classList.remove('hidden');
+  $('prompt').classList.add('hidden');
+  nextLine();
+}
+function nextLine() {
+  dlg.cur = dlg.queue.shift();
+  if (!dlg.cur) {
+    $('dialogue').classList.add('hidden');
+    state.mode = 'play';
+    const cb = dlg.onEnd; dlg.onEnd = null;
+    if (cb) cb(); else afterInteraction();
+    return;
+  }
+  dlg.shown = 0;
+  $('dlgWho').textContent = dlg.cur.who || '';
+  $('dlgWho').classList.toggle('hidden', !dlg.cur.who);
+  $('dlgText').textContent = '';
+  $('dlgNext').classList.add('hidden');
+}
+function updateDialogue(dt) {
+  if (!dlg.cur) return;
+  const len = dlg.cur.text.length;
+  if (dlg.shown < len) {
+    dlg.shown = Math.min(len, dlg.shown + dt * 55);
+    $('dlgText').textContent = dlg.cur.text.slice(0, Math.floor(dlg.shown));
+    if (time - dlg.lastBlip > .07) { sfx.blip(); dlg.lastBlip = time; }
+    if (dlg.shown >= len) $('dlgNext').classList.remove('hidden');
+  }
+}
+function pressA() {
+  if (state.mode === 'dialogue') {
+    if (!dlg.cur) return;
+    if (dlg.shown < dlg.cur.text.length) { dlg.shown = dlg.cur.text.length; $('dlgText').textContent = dlg.cur.text; $('dlgNext').classList.remove('hidden'); }
+    else nextLine();
+    return;
+  }
+  if (state.mode !== 'play' || player.moving) return;
+  const [dx, dy] = DIRS[player.dir], fx = player.tx + dx, fy = player.ty + dy;
+  if (!inb(fx, fy)) return;
+  const i = idx(fx, fy);
+  if (npcAt.has(i)) return talkTo(npcAt.get(i));
+  if (signAt.has(i)) { const s = signAt.get(i); sfx.select(); return say(s.text.map(t => ({ who: s.title, text: t }))); }
+  if (relicAt.has(i) && !state.found.includes(relicAt.get(i).id) && zoneOpen(zoneAt(fx, fy))) collectRelic(relicAt.get(i));
+}
+function talkTo(n) {
+  const opp = { up: 'down', down: 'up', left: 'right', right: 'left' };
+  n.dir = opp[player.dir]; n.turnT = 6;
+  sfx.select();
+  const who = `${n.name} · ${n.role}`;
+  const lines = [];
+  if (!state.met[n.id]) { n.intro.forEach(t => lines.push({ who, text: t })); state.met[n.id] = true; save(); }
+  else {
+    const missing = n.knows.filter(id => !state.found.includes(id));
+    if (missing.length) lines.push({ who, text: n.greet });
+  }
+  const missing = n.knows.filter(id => !state.found.includes(id));
+  if (missing.length) missing.forEach(id => lines.push({ who, text: `On Thorne's "${relicById[id].name}": ${relicById[id].clue}` }));
+  else if (state.found.length >= RELICS.length) lines.push({ who, text: n.done });
+  else lines.push({ who, text: `I've told you all I know about my corner of Thorne's list. ${otherHint(n)}` });
+  say(lines);
+}
+function otherHint(n) {
+  const other = npcs.find(o => o !== n && o.knows.some(id => !state.found.includes(id)));
+  return other ? `${other.name}, the ${other.role.toLowerCase().split(',')[0]}, might help with the rest.` : '';
+}
+
+/* ---------- Relics & progression ---------- */
+function collectRelic(r) {
+  state.found.push(r.id);
+  sfx.relic();
+  held.length = 0;
+  save();
+  updateHud();
+  openModal(relicView(r.id, 'summary', true));
+}
+function afterInteraction() {
+  // Zone unlocks
+  for (const z of ZONES) {
+    if (!state.unlockedZones.has(z.id) && zoneOpen(z)) {
+      state.unlockedZones.add(z.id);
+      computeBarriers();
+      sfx.unlock();
+      save();
+      return say([{ who: "Thorne's Survey", text: z.unlockText }]);
+    }
+  }
+  checkCompletion();
+}
+function checkCompletion() {
+  if (state.mode !== 'play') return;
+  if (state.found.length < RELICS.length) return;
+  if (explorePct() >= CONFIG.finaleExplorePct) {
+    if (!state.flags.finaleShown) { state.flags.finaleShown = true; save(); sfx.unlock(); openModal(finaleView); }
+  } else if (!state.flags.allFoundNoted) {
+    state.flags.allFoundNoted = true; save();
+    say([{ who: "Thorne's Survey", text: STORY.allFoundNotExplored }]);
+  }
+}
+
+/* ---------- Player movement ---------- */
+let lastBump = 0, lastArea = '', areaTimer = 0, toastTimer = 0;
+function updatePlayer(dt) {
+  const speed = runHeld ? CONFIG.runSpeed : CONFIG.walkSpeed;
+  if (player.moving) {
+    player.t += dt * speed;
+    if (player.t >= 1) {
+      player.tx += player.fx; player.ty += player.fy;
+      player.moving = false; player.t = 0; player.step++;
+      onArrive();
+    }
+  }
+  if (!player.moving && state.mode === 'play') {
+    const d = currentDir() || tapDir;
+    tapDir = null;
+    if (d) {
+      player.dir = d;
+      const [dx, dy] = DIRS[d], nx = player.tx + dx, ny = player.ty + dy;
+      const why = blockedReason(nx, ny);
+      if (!why) { player.moving = true; player.fx = dx; player.fy = dy; player.t = 0; }
+      else if (time - lastBump > .35) {
+        lastBump = time; sfx.bump();
+        if (why === 'zone') { const z = zoneAt(nx, ny); showToast(STORY.cordon(z, state.found.length)); }
+      }
+    }
+  }
+  const t = player.moving ? player.t : 0;
+  player.px = (player.tx + player.fx * t) * TS;
+  player.py = (player.ty + player.fy * t) * TS;
+  if (!player.moving) { player.px = player.tx * TS; player.py = player.ty * TS; }
+  if (Math.abs(player.px - lastRevealX) + Math.abs(player.py - lastRevealY) >= 4) {
+    revealAt(player.px + 8, player.py + 8); lastRevealX = player.px; lastRevealY = player.py;
+  }
+}
+function onArrive() {
+  const i = idx(player.tx, player.ty);
+  const area = MAP_DATA.areas.find(a => inRect(player.tx, player.ty, a.rect));
+  const name = area ? area.name : '';
+  if (name && name !== lastArea && name !== 'The Severn') showArea(name);
+  lastArea = name;
+  if (relicAt.has(i) && !state.found.includes(relicAt.get(i).id)) return collectRelic(relicAt.get(i));
+  if (state.found.length >= RELICS.length && !state.flags.finaleShown && explorePct() >= CONFIG.finaleExplorePct) checkCompletion();
+}
+function updateNPCs(dt) {
+  for (const n of npcs) {
+    n.turnT -= dt;
+    if (n.turnT <= 0) {
+      n.turnT = 2.5 + Math.random() * 4;
+      n.dir = Math.random() < .5 ? n.baseDir : ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
+    }
+  }
+}
+
+/* ---------- HUD ---------- */
+let lastPctShown = -1;
+function updateHud() {
+  const p = explorePct(), pi = Math.floor(p);
+  if (pi !== lastPctShown) { $('pct').textContent = pi + '%'; $('pctBar').style.width = p.toFixed(1) + '%'; lastPctShown = pi; }
+  $('relicCount').textContent = `${state.found.length}/${RELICS.length}`;
+}
+function showArea(name) {
+  const el = $('areaBanner'); el.textContent = name; el.classList.add('show'); areaTimer = 2.6;
+}
+function showToast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); toastTimer = 4; }
+function updatePrompt() {
+  const el = $('prompt');
+  if (state.mode !== 'play' || player.moving) { el.classList.add('hidden'); return; }
+  const [dx, dy] = DIRS[player.dir], fx = player.tx + dx, fy = player.ty + dy;
+  let txt = null;
+  if (inb(fx, fy)) {
+    const i = idx(fx, fy);
+    if (npcAt.has(i)) txt = 'Talk to ' + npcAt.get(i).name;
+    else if (signAt.has(i)) txt = 'Read: ' + signAt.get(i).title;
+  }
+  if (txt) { $('promptText').textContent = txt; el.classList.remove('hidden'); } else el.classList.add('hidden');
+}
+const mmCanvas = $('minimap'), mmCtx = mmCanvas.getContext('2d');
+let mmTimer = 0;
+function drawMinimap() {
+  const g = mmCtx, sc = 2;
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#17152e'; g.fillRect(0, 0, 200, 160);
+  g.drawImage(mmBase, 0, 0, MW * sc, MH * sc);
+  g.imageSmoothingEnabled = true;
+  g.drawImage(fogCanvas, 0, 0, MW * sc, MH * sc);
+  g.imageSmoothingEnabled = false;
+  for (const r of RELICS) if (state.found.includes(r.id)) { g.fillStyle = OUT; g.fillRect(r.x * sc - 2, r.y * sc - 2, 6, 6); g.fillStyle = '#ffd34a'; g.fillRect(r.x * sc - 1, r.y * sc - 1, 4, 4); }
+  if (Math.floor(time * 3) % 2 === 0) { g.fillStyle = '#ffffff'; g.fillRect(player.px / TS * sc - 2, player.py / TS * sc - 2, 6, 6); g.fillStyle = '#d0453a'; g.fillRect(player.px / TS * sc - 1, player.py / TS * sc - 1, 4, 4); }
+}
+
+/* ---------- Modals ---------- */
+const modalStack = [];
+function openModal(view) {
+  modalStack.push(view);
+  state.mode = 'modal';
+  held.length = 0; touchDir = null;
+  $('modal').classList.remove('hidden');
+  $('dialogue').classList.add('hidden');
+  renderModal();
+}
+function renderModal() {
+  const v = modalStack[modalStack.length - 1], box = $('modalBox');
+  box.classList.toggle('wide', !!v.wide);
+  box.innerHTML = v.html();
+  box.scrollTop = 0;
+  if (v.after) v.after(box);
+  const first = box.querySelector('[data-focus]') || box.querySelector('button');
+  if (first && !document.body.classList.contains('touch')) first.focus({ preventScroll: true });
+}
+function closeModal() {
+  sfx.blip();
+  modalStack.pop();
+  if (modalStack.length) return renderModal();
+  $('modal').classList.add('hidden');
+  if (state.mode === 'modal') {
+    state.mode = 'play';
+    afterInteraction();
+  }
+}
+function closeAllModals(toMode = 'play') {
+  modalStack.length = 0; $('modal').classList.add('hidden'); state.mode = toMode;
+}
+$('modalBox').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, arg = b.dataset.arg;
+  const v = modalStack[modalStack.length - 1];
+  if (act === 'close') return closeModal();
+  if (v && v.on && v.on(act, arg) !== false) return;
+});
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+function relicView(id, mode = 'summary', fresh = false) {
+  const r = relicById[id];
+  const v = {
+    mode,
+    html() {
+      const head = `<div class="relic-head"><img class="relic-img" src="${relicImg[id]}" alt="Pixel-art picture of the ${r.name}">
+        <div><div class="kicker">${fresh ? 'Witness logged' : 'Witness'} · ${state.found.indexOf(id) + 1} of ${RELICS.length}</div><h2>${r.name}</h2><div class="period">${r.period}</div></div></div>`;
+      if (v.mode === 'summary') return `${head}
+        <h3>Why it matters</h3><p class="lede">${r.summary}</p>
+        <div class="btnrow"><button class="btn primary" data-act="more" data-focus>Read more &#9656;</button><button class="btn" data-act="close">Close</button></div>`;
+      return `${head}
+        <div class="callout fact"><h4>The record <span class="tag est">Established</span></h4><p>${r.more}</p></div>
+        <div class="callout surprise"><h4>Surprising detail</h4><p>${r.surprise}</p></div>
+        ${r.legend ? `<div class="callout legend"><h4>${r.legend.type} <span class="tag leg">Not established fact</span></h4><p>${r.legend.text}</p></div>` : ''}
+        <div class="callout visit"><h4>&#9873; Visit</h4><p>${r.visit}</p></div>
+        <div class="btnrow"><button class="btn" data-act="less">&#9666; Summary</button><button class="btn primary" data-act="close" data-focus>Close</button></div>`;
+    },
+    on(act) { if (act === 'more' || act === 'less') { sfx.blip(); v.mode = act === 'more' ? 'more' : 'summary'; renderModal(); } }
+  };
+  return v;
+}
+const journalView = {
+  html() {
+    const cards = RELICS.map(r => {
+      if (state.found.includes(r.id)) return `<button class="card" data-act="relic" data-arg="${r.id}"><img src="${relicImg[r.id]}" alt=""><span>${r.name}</span><span class="p">${r.period}</span></button>`;
+      const z = ZONES.find(z => z.id === r.zone);
+      return `<div class="card locked"><div class="q">?</div><span>Witness ${r.num}</span><span class="p">${zoneOpen(z) ? 'Somewhere in ' + z.name : 'District not yet surveyed'}</span></div>`;
+    }).join('');
+    return `<div class="kicker">Thorne's Survey</div><h2>Relic Journal</h2>
+      <p class="small">${state.found.length} of ${RELICS.length} witnesses logged · ${Math.floor(explorePct())}% of the town explored. Tap a witness to reread its entry.</p>
+      <div class="grid">${cards}</div>
+      <div class="btnrow"><button class="btn" data-act="timeline">Timeline &#9656;</button><button class="btn primary" data-act="close">Close</button></div>`;
+  },
+  wide: true,
+  on(act, arg) { if (act === 'relic') openModal(relicView(arg)); if (act === 'timeline') openModal(timelineView); }
+};
+const timelineView = {
+  html() {
+    const found = RELICS.filter(r => state.found.includes(r.id)).sort((a, b) => a.year - b.year);
+    let html = `<div class="kicker">Thorne's Survey</div><h2>Timeline</h2><p class="small">The witnesses you have logged, in chronological order.</p><div class="tl">`;
+    if (!found.length) html += `<p class="tl-gap">Nothing logged yet. The record begins when you find your first witness.</p>`;
+    let era = -1;
+    for (const r of found) {
+      const e = ERAS.findIndex(e => r.year < e.to);
+      if (e !== era) { html += `<div class="era">${ERAS[e].name}</div>`; era = e; }
+      html += `<button class="tl-item" data-act="relic" data-arg="${r.id}"><img src="${relicImg[r.id]}" alt=""><span>${r.name}<br><span class="d">${r.period}</span></span></button>`;
+    }
+    const gaps = RELICS.length - found.length;
+    if (gaps) html += `<p class="tl-gap">${gaps} witness${gaps > 1 ? 'es' : ''} still missing from the record.</p>`;
+    return html + `</div><div class="btnrow"><button class="btn primary" data-act="close">Close</button></div>`;
+  },
+  on(act, arg) { if (act === 'relic') openModal(relicView(arg)); }
+};
+const mapView = {
+  wide: true,
+  html() {
+    return `<div class="kicker">Thorne's Survey</div><h2>Thorne's Map</h2>
+      <p class="small">${Math.floor(explorePct())}% of the town explored. Gold squares mark witnesses you have logged; the red dot is you.</p>
+      <canvas id="thorneMap" width="800" height="640"></canvas>
+      <div class="btnrow"><button class="btn primary" data-act="close">Close</button></div>`;
+  },
+  after(box) {
+    const c = box.querySelector('#thorneMap'), g = c.getContext('2d'), sc = 8;
+    g.imageSmoothingEnabled = false; g.drawImage(mapCanvas, 0, 0, MW * TS, MH * TS, 0, 0, MW * sc, MH * sc);
+    g.imageSmoothingEnabled = true; g.drawImage(fogCanvas, 0, 0, MW * sc, MH * sc); g.imageSmoothingEnabled = false;
+    g.font = 'bold 15px Georgia, serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#fffbef'; g.fillStyle = '#232244';
+    for (const a of MAP_DATA.areas) {
+      if (a.name === 'The Severn') continue;
+      const cx = Math.floor(a.rect[0] + a.rect[2] / 2), cy = Math.floor(a.rect[1] + a.rect[3] / 2);
+      if (!inb(cx, cy) || !tileRevealed(cx, cy)) continue;
+      g.strokeText(a.name, cx * sc, cy * sc); g.fillText(a.name, cx * sc, cy * sc);
+    }
+    for (const r of RELICS) if (state.found.includes(r.id)) { g.fillStyle = OUT; g.fillRect(r.x * sc - 3, r.y * sc - 3, 14, 14); g.fillStyle = '#ffd34a'; g.fillRect(r.x * sc - 1, r.y * sc - 1, 10, 10); }
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(player.px / TS * sc + 4, player.py / TS * sc + 4, 9, 0, 7); g.fill();
+    g.fillStyle = '#d0453a'; g.beginPath(); g.arc(player.px / TS * sc + 4, player.py / TS * sc + 4, 6, 0, 7); g.fill();
+  }
+};
+function menuView() {
+  const complete = !!state.flags.finaleShown;
+  return {
+    html() {
+      return `<div class="kicker">Survey paused</div><h2>Menu</h2>
+      <div class="menu-list">
+        <button class="btn primary" data-act="close" data-focus>Resume <span>Esc</span></button>
+        <button class="btn" data-act="journal">Relic Journal <span>J</span></button>
+        <button class="btn" data-act="timeline">Timeline <span>T</span></button>
+        <button class="btn" data-act="map">Thorne's Map <span>M</span></button>
+        ${complete ? `<button class="btn" data-act="finale">${STORY.finaleTitle}</button>` : ''}
+        <button class="btn" data-act="route" ${complete ? '' : 'disabled'}>Walking Route <span>${complete ? 'real-world' : 'after the survey'}</span></button>
+        <button class="btn" data-act="sound">Sound: ${state.sound ? 'On' : 'Off'}</button>
+        <button class="btn" data-act="help">How to Play</button>
+        <button class="btn" data-act="title">Return to Title</button>
+        <button class="btn" data-act="reset">Start a New Survey&hellip;</button>
+      </div>
+      <p class="small" style="margin-top:12px">Progress is saved automatically on this device.</p>`;
+    },
+    on(act) {
+      if (act === 'journal') openModal(journalView);
+      if (act === 'timeline') openModal(timelineView);
+      if (act === 'map') openModal(mapView);
+      if (act === 'finale') openModal(finaleView);
+      if (act === 'route') openModal(routeView);
+      if (act === 'help') openModal(helpView);
+      if (act === 'sound') { state.sound = !state.sound; if (state.sound) ensureAudio(); save(); renderModal(); }
+      if (act === 'title') { save(); closeAllModals('title'); showTitle(); }
+      if (act === 'reset') openModal(confirmResetView);
+    }
+  };
+}
+function openMenu() { sfx.select(); openModal(menuView()); }
+const confirmResetView = {
+  html: () => `<h2>Start again?</h2><p>This clears the map, your logged witnesses and everyone's memory of you. It cannot be undone.</p>
+    <div class="btnrow"><button class="btn" data-act="close" data-focus>Keep my survey</button><button class="btn primary" data-act="yes">Start afresh</button></div>`,
+  on(act) { if (act === 'yes') { closeAllModals('title'); newGame(); } }
+};
+const helpView = {
+  html: () => `<div class="kicker">Thorne's Survey</div><h2>How to Play</h2>
+    <p>You are completing an antiquarian survey of Shrewsbury begun in 1887 and never finished. Walk the town to clear the fog from Thorne's map, talk to the townsfolk, and find the ten <b>witnesses</b>: objects that each testify to a chapter of the town's history.</p>
+    <p>A witness sparkles when you are close. Walk onto it to log it. Each one opens a short summary, with a longer entry behind <b>Read more</b>. Established history is marked as such; legends, traditions and disputed claims are always shown separately, in a dashed box.</p>
+    <p>New districts open as your log grows. When every witness is found and the fog is cleared, the survey is complete, and you can take Thorne's route around the real town.</p>
+    <h3>Controls</h3>
+    <p class="small">Walk: arrow keys / WASD / D-pad · Talk, read, continue: Space, Enter or Z / A button · Hurry: hold Shift or X / B button · Menu: Esc · Journal: J · Timeline: T · Map: M</p>
+    <h3>Install</h3>
+    <p class="small">This game works offline. On a phone, use your browser's "Add to Home Screen" (or the Install button on the title screen) to keep it as an app.</p>
+    <div class="btnrow"><button class="btn primary" data-act="close" data-focus>Close</button></div>`
+};
+const finaleView = {
+  wide: true,
+  html: () => `<div class="kicker">The survey is complete</div><h2>${STORY.finaleTitle}</h2>
+    ${STORY.finale.map(p => `<p>${p}</p>`).join('')}
+    <div class="btnrow"><button class="btn primary" data-act="route" data-focus>Walk it for real &#9656;</button><button class="btn" data-act="timeline">Timeline</button><button class="btn" data-act="close">Close</button></div>`,
+  on(act) { if (act === 'route') openModal(routeView); if (act === 'timeline') openModal(timelineView); }
+};
+const routeView = {
+  wide: true,
+  html() {
+    const stops = ROUTE.map(s => {
+      const ok = tileRevealed(s.at[0], s.at[1]);
+      return `<li class="${ok ? '' : 'miss'}"><b>${s.name}</b>${ok ? '' : ' <span class="small">(not surveyed in game)</span>'}<br>${s.note}</li>`;
+    }).join('');
+    const further = ROUTE_FURTHER.filter(f => state.found.includes(f.relic)).map(f => `<li><b>${f.name}</b><br>${f.note}</li>`).join('');
+    return `<div class="kicker">Thorne's walk</div><h2>A Real-World Walking Route</h2>
+      <p>A circuit of the places you surveyed, starting and ending near the station. Allow two to three hours at a stroll, more with museum visits. Distances are short but Shrewsbury is hilly, and Wyle Cop and Claremont Bank are steep.</p>
+      <div class="route"><ol>${stops}</ol></div>
+      ${further ? `<h3>Further afield</h3><div class="route"><ul style="padding-left:20px">${further}</ul></div>` : ''}
+      <p class="small">Opening hours change; check before you set out. Please respect private buildings.</p>
+      <div class="btnrow"><button class="btn" data-act="copy">Copy route as text</button><button class="btn primary" data-act="close" data-focus>Close</button></div>`;
+  },
+  on(act, arg) {
+    if (act === 'copy') {
+      const txt = 'Shrewsbury walking route (from Shrewsbury: An Unfinished Survey)\n' + ROUTE.map((s, i) => `${i + 1}. ${s.name} — ${s.note}`).join('\n');
+      const done = () => showToast('Route copied to the clipboard.');
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, () => showToast('Could not copy on this device.'));
+    }
+  }
+};
+
+/* ---------- Save / load ---------- */
+function b64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 4096) s += String.fromCharCode.apply(null, u8.subarray(i, i + 4096)); return btoa(s); }
+function unb64(str, out) { const s = atob(str); for (let i = 0; i < s.length && i < out.length; i++) out[i] = s.charCodeAt(i); }
+function save() {
+  if (state.mode === 'title' && !state.flags.started) return;
+  try {
+    localStorage.setItem(CONFIG.saveKey, JSON.stringify({
+      v: 1, x: player.tx, y: player.ty, dir: player.dir, found: state.found, met: state.met,
+      flags: state.flags, sound: state.sound, fog: b64(fog), at: Date.now()
+    }));
+    fogDirty = false;
+  } catch (e) { /* storage full or unavailable: play on */ }
+}
+function loadSave() {
+  try { const s = localStorage.getItem(CONFIG.saveKey); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+function applySave(d) {
+  state.found = (d.found || []).filter(id => relicById[id]);
+  state.met = d.met || {}; state.flags = d.flags || {}; state.sound = d.sound !== false;
+  fog.fill(0);
+  if (d.fog) try { unb64(d.fog, fog); } catch (e) { fog.fill(0); }
+  refreshFogAll();
+  const ok = inb(d.x, d.y) && !blockedReason(d.x, d.y);
+  placePlayer(ok ? d.x : MAP_DATA.start.x, ok ? d.y : MAP_DATA.start.y, d.dir || 'down');
+  state.unlockedZones = new Set(ZONES.filter(zoneOpen).map(z => z.id));
+  computeBarriers();
+}
+function placePlayer(x, y, dir) {
+  player.tx = x; player.ty = y; player.dir = dir; player.moving = false; player.t = 0; player.fx = player.fy = 0;
+  player.px = x * TS; player.py = y * TS; lastRevealX = -999;
+}
+
+/* ---------- Title, new game, continue ---------- */
+function showTitle() {
+  state.mode = 'title';
+  $('hud').classList.add('hidden'); $('dialogue').classList.add('hidden');
+  $('title').classList.remove('hidden');
+  const has = !!loadSave();
+  $('btnContinue').classList.toggle('hidden', !has);
+  $('btnNew').classList.toggle('primary', !has);
+  setTimeout(() => (has ? $('btnContinue') : $('btnNew')).focus({ preventScroll: true }), 50);
+}
+function startPlay() {
+  $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
+  state.mode = 'play'; lastPctShown = -1; lastArea = '';
+  updatePlayer(0); updateHud();
+}
+function newGame() {
+  state.found = []; state.met = {}; state.flags = { started: true };
+  fog.fill(0); refreshFogAll();
+  placePlayer(MAP_DATA.start.x, MAP_DATA.start.y, MAP_DATA.start.dir);
+  state.unlockedZones = new Set(ZONES.filter(zoneOpen).map(z => z.id));
+  computeBarriers();
+  startPlay();
+  save();
+  showArea('Railway Station');
+  say(STORY.intro, () => { state.flags.introDone = true; save(); });
+}
+function continueGame() {
+  const d = loadSave(); if (!d) return newGame();
+  applySave(d); state.flags.started = true;
+  startPlay();
+  if (!state.flags.introDone) say(STORY.intro, () => { state.flags.introDone = true; save(); });
+}
+$('btnNew').addEventListener('click', () => {
+  ensureAudio(); sfx.select();
+  if (loadSave()) { $('title').classList.add('hidden'); state.mode = 'modal'; modalStack.length = 0; openModal({ ...confirmResetView, on(act) { if (act === 'yes') { closeAllModals('title'); newGame(); } } }); modalStack[0].onCloseToTitle = true; }
+  else newGame();
+});
+$('btnContinue').addEventListener('click', () => { ensureAudio(); sfx.select(); continueGame(); });
+$('btnHow').addEventListener('click', () => { sfx.select(); $('title').classList.add('hidden'); openModal({ ...helpView, onCloseToTitle: true }); });
+$('btnJournal').addEventListener('click', () => { if (state.mode === 'play') { sfx.select(); openModal(journalView); } });
+$('btnMenu').addEventListener('click', () => { if (state.mode === 'play') openMenu(); });
+$('mmWrap').addEventListener('click', () => { if (state.mode === 'play') { sfx.select(); openModal(mapView); } });
+// Modals opened from the title screen return to it when closed
+const _closeModal = closeModal;
+closeModal = function () {
+  const top = modalStack[modalStack.length - 1];
+  if (top && top.onCloseToTitle && modalStack.length === 1) { modalStack.length = 0; $('modal').classList.add('hidden'); showTitle(); return; }
+  _closeModal();
+};
+
+/* ---------- PWA: offline + install ---------- */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('installBtn').classList.remove('hidden'); });
+$('installBtn').addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  try { await deferredInstall.userChoice; } catch (e) {}
+  deferredInstall = null; $('installBtn').classList.add('hidden');
+});
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+/* ---------- Main loop ---------- */
+let last = performance.now(), saveTimer = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; time += dt;
+  if (state.mode === 'play') { updatePlayer(dt); updateNPCs(dt); updatePrompt(); }
+  else if (state.mode === 'dialogue') updateDialogue(dt);
+  if (state.mode !== 'title') {
+    updateHud();
+    mmTimer -= dt; if (mmTimer <= 0) { drawMinimap(); mmTimer = .2; }
+    if (areaTimer > 0 && (areaTimer -= dt) <= 0) $('areaBanner').classList.remove('show');
+    if (toastTimer > 0 && (toastTimer -= dt) <= 0) $('toast').classList.remove('show');
+    saveTimer += dt; if (saveTimer > 5) { saveTimer = 0; if (fogDirty) save(); }
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && state.mode !== 'title') save(); });
+window.addEventListener('pagehide', () => { if (state.mode !== 'title') save(); });
+window.addEventListener('resize', resize);
+
+/* ---------- Boot ---------- */
+buildMap();
+renderMap();
+renderRelicArt();
+initFog();
+resize();
+setupTouch();
+showTitle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

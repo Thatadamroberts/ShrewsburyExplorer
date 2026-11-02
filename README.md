@@ -11,7 +11,7 @@ All of the game is in **`index.html`**: Canvas API, vanilla JavaScript, and ever
 
 ### Install as an app (works offline)
 
-The game is a Progressive Web App. To install it, serve the folder over HTTPS (GitHub Pages, Netlify, or any static host), open it on a phone, and then:
+The game is a Progressive Web App, published to GitHub Pages at **https://thatadamroberts.github.io/ShrewsburyExplorer/** by `.github/workflows/pages.yml` on every push. Open that address on a phone, then:
 
 - **Android / Chrome:** tap **Install** on the title screen, or use *Add to Home screen* from the browser menu.
 - **iPhone / Safari:** tap Share, then **Add to Home Screen**.
@@ -22,7 +22,7 @@ After the first visit the service worker caches the game, so it runs with no con
 | --- | --- |
 | `index.html` | The whole game (self-contained) |
 | `manifest.webmanifest` | App name, colours, icons for home-screen install |
-| `sw.js` | Offline cache. **Bump `VERSION`** whenever you change `index.html` so installed copies update |
+| `sw.js` | Offline cache. The Pages workflow stamps `VERSION` with the commit, so installed copies update automatically; bump it by hand only if you host elsewhere |
 | `icons/` | Home-screen icons, rendered from the game's own sprites |
 | `tools/make-icons.js` | Re-renders the icons (`node tools/make-icons.js`, needs Playwright) |
 

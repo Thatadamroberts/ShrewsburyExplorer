@@ -1,5 +1,6 @@
 ---
 title: "Shrewsbury: An Unfinished Survey"
+playable: true
 summary: A pixel-art exploration game about the history of Shrewsbury. Walk the town to clear the fog from a Victorian antiquarian's map and find the ten objects that tell its story, from Roman Wroxeter to Wilfred Owen.
 imageAlt: A pixel-art walker on Butcher Row in Shrewsbury, among timber-framed buildings, with a relic sparkling nearby and fog covering the unexplored streets to the east
 ---
@@ -10,7 +11,7 @@ imageAlt: A pixel-art walker on Butcher Row in Shrewsbury, among timber-framed b
 
 You walk the streets to clear the fog from his map and talk to five townsfolk, from an archivist at the library to a retired maltster. You also find the ten witnesses: a coin from Roman Viroconium, a stone from the Norman castle, an arrowhead from the Battle of Shrewsbury in 1403, a sketch of finches for Darwin, an iron column from the Ditherington Flaxmill, and a notebook belonging to Wilfred Owen. Each one you log opens up more of the town.
 
-**[Play it in your browser](https://thatadamroberts.github.io/ShrewsburyExplorer/)**. It works on phones, and you can install it as an app that runs offline.
+**[Play it in your browser](https://thatadamroberts.github.io/ShrewsburyExplorer/)**, or press Play above to play it right here. It works on phones, and from its own page you can install it as an app that runs offline.
 
 ## Why I built it
 

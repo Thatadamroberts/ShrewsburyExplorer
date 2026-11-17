@@ -1561,6 +1561,7 @@ const state = {
 };
 state.clock = 18.9;          // the title screen shows the town at lamp-lighting time
 state.timeMode = 'cycle';    // cycle | day | local
+state.ambience = true;       // river, town, wildlife and bells (needs Sound on)
 state.motion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'full';
 const player = { tx: MAP_DATA.start.x, ty: MAP_DATA.start.y, px: 0, py: 0, dir: 'down', moving: false, fx: 0, fy: 0, t: 0, step: 0, idleT: 1, turnT: 0, bumpT: 0 };
 // Characters: the five townsfolk plus passers-by. npcAt maps an occupied tile to whoever is on it.
@@ -2263,6 +2264,201 @@ const sfx = {
   flap: () => { for (let k = 0; k < 4; k++) tone(180 + Math.random() * 120, .03, 'triangle', .025, k * .05); }
 };
 
+/* ---------- Ambient soundscape: synthesised live, no audio files ----------
+   River, wind, town murmur, birds, owls, ducks, pigeons, church bells and footsteps.
+   Each layer follows the listener (the surveyor, or the camera on the title screen). */
+let amb = null;
+const CHURCHES = [[58, 22], [37, 40], [86, 40]];   // St Mary's, St Chad's, the Abbey
+function noiseBuffer(a, brown) {
+  const n = Math.floor(a.sampleRate * 4), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; if (brown) { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; }
+  const drift = d[n - 1] - d[0];
+  for (let i = 0; i < n; i++) d[i] -= drift * i / (n - 1);   // so the loop joins without a click
+  return b;
+}
+function loopNoise(a, buf) { const src = a.createBufferSource(); src.buffer = buf; src.loop = true; src.start(0, Math.random() * 3); return src; }
+function buildAmbience() {
+  const a = actx;
+  const white = noiseBuffer(a, false), brown = noiseBuffer(a, true);
+  const bus = a.createGain(); bus.gain.value = 0; bus.connect(a.destination);
+  const layer = (buf, filters) => {
+    let n = loopNoise(a, buf);
+    for (const f of filters) { n.connect(f); n = f; }
+    const g = a.createGain(); g.gain.value = 0; n.connect(g);
+    let p = null;
+    if (a.createStereoPanner) { p = a.createStereoPanner(); g.connect(p); p.connect(bus); } else g.connect(bus);
+    return { g, p };
+  };
+  const filt = (type, f, q) => { const x = a.createBiquadFilter(); x.type = type; x.frequency.value = f; x.Q.value = q; return x; };
+  const rLow = filt('lowpass', 520, .7), rBab = filt('bandpass', 1100, 2.5), wF = filt('bandpass', 380, .8);
+  const m1 = filt('bandpass', 430, 3), m2 = filt('bandpass', 1150, 4);
+  amb = {
+    bus, rBab, wF, m1, m2,
+    river: layer(brown, [rLow]), babble: layer(white, [rBab]), wind: layer(white, [wF]),
+    murmurA: layer(brown, [m1]), murmurB: layer(white, [filt('highpass', 300, .5), m2]),
+    scan: 0, flutter: 0, env: { near: 99, pan: 0, urban: 0, green: 0, people: 0 },
+    next: { bird: 2, owl: 15, duck: 8, plip: 1, coo: 5 }, bellHour: null
+  };
+}
+const setG = (param, v, tc = .25) => param.setTargetAtTime(v, actx.currentTime, tc);
+function shotOut(pan, vol) {
+  const g = actx.createGain(); g.gain.value = vol;
+  if (actx.createStereoPanner) { const p = actx.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); p.connect(amb.bus); }
+  else g.connect(amb.bus);
+  return g;
+}
+function osc(type, f, t, dur, out, env = [.01, .001]) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + env[0]); g.gain.exponentialRampToValueAtTime(env[1], t + dur);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .05);
+  return o;
+}
+const SND = {
+  chirp(pan, vol) {   // a short phrase of robin-like chirps
+    const t0 = actx.currentTime, out = shotOut(pan, vol), base = 2400 + Math.random() * 1800, n = 2 + Math.floor(Math.random() * 5);
+    let t = t0;
+    for (let k = 0; k < n; k++) {
+      const o = osc('sine', base * (.85 + Math.random() * .3), t, .07, out);
+      o.frequency.exponentialRampToValueAtTime(base * (1.15 + Math.random() * .45), t + .05);
+      t += .06 + Math.random() * .08;
+    }
+  },
+  owl(pan, vol) {     // tawny owl: hoo ... hoo-hoo-hooo
+    const t0 = actx.currentTime, out = shotOut(pan, vol);
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(out);
+    [[0, .5, 420], [1.1, .16, 410], [1.4, .8, 395]].forEach(([d, dur, f]) => {
+      const o = osc('sine', f, t0 + d, dur, lp, [.06, .001]);
+      const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 7; lg.gain.value = d > 1.3 ? 14 : 4;
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t0 + d); lfo.stop(t0 + d + dur + .05);
+    });
+  },
+  quack(pan, vol) {
+    const t0 = actx.currentTime, out = shotOut(pan, vol);
+    const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1000; bp.Q.value = 3; bp.connect(out);
+    const n = 1 + Math.floor(Math.random() * 3);
+    for (let k = 0; k < n; k++) {
+      const t = t0 + k * .2, o = osc('sawtooth', 230, t, .13, bp, [.01, .001]);
+      o.frequency.exponentialRampToValueAtTime(160, t + .12);
+    }
+  },
+  plip(pan, vol) {    // a drop on the water
+    const t = actx.currentTime, f = 500 + Math.random() * 600, o = osc('sine', f, t, .07, shotOut(pan, vol), [.004, .001]);
+    o.frequency.exponentialRampToValueAtTime(f * 2.3, t + .05);
+  },
+  coo(pan, vol) {     // pigeon: a soft rolling coo
+    const t0 = actx.currentTime, out = shotOut(pan, vol);
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; lp.connect(out);
+    [[0, .22, 300], [.26, .14, 330], [.44, .32, 280]].forEach(([d, dur, f]) => {
+      const o = osc('sine', f, t0 + d, dur, lp, [.04, .001]);
+      const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 22; lg.gain.value = 18;
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t0 + d); lfo.stop(t0 + d + dur + .05);
+    });
+  },
+  bell(strikes, pan, vol) {   // church bell: inharmonic partials with a long hum
+    const t0 = actx.currentTime + .1, out = shotOut(pan, vol), base = 233;
+    for (let s = 0; s < strikes; s++) {
+      const t = t0 + s * 2.4;
+      [[.5, .45, 5], [1, 1, 4], [1.19, .5, 3], [1.5, .35, 2.6], [2, .4, 2.2], [2.52, .25, 1.6], [3.0, .15, 1.2]].forEach(([r, g, d]) => {
+        const o = actx.createOscillator(), e = actx.createGain();
+        o.type = 'sine'; o.frequency.value = base * r;
+        e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(g, t + .006); e.gain.exponentialRampToValueAtTime(.0005, t + d);
+        o.connect(e); e.connect(out); o.start(t); o.stop(t + d + .05);
+      });
+    }
+  },
+  step(surface) {
+    if (!amb) return;
+    const t = actx.currentTime, out = shotOut((Math.random() - .5) * .1, 1);
+    const src = actx.createBufferSource(); src.buffer = amb.stepBuf || (amb.stepBuf = noiseBuffer(actx, false));
+    const f = actx.createBiquadFilter(), g = actx.createGain();
+    const S = { road: ['highpass', 1800, .05, .035], pave: ['bandpass', 1300, .05, .03], grass: ['bandpass', 3500, .09, .02],
+                dirt: ['lowpass', 900, .07, .045], bridge: ['bandpass', 700, .06, .035] }[surface] || ['bandpass', 1200, .05, .03];
+    f.type = S[0]; f.frequency.value = S[1] * (.9 + Math.random() * .2);
+    g.gain.setValueAtTime(S[3], t); g.gain.exponentialRampToValueAtTime(.0005, t + S[2]);
+    src.connect(f); f.connect(g); g.connect(out); src.start(t, Math.random() * 3); src.stop(t + S[2] + .02);
+    if (surface === 'bridge' || surface === 'pave') osc('sine', surface === 'bridge' ? 110 : 160, t, .06, out, [.003, .001]).frequency.exponentialRampToValueAtTime(70, t + .05);
+  }
+};
+const isPond = (x, y) => MAP_DATA.ponds.some(r => inRect(x, y, r));
+function scanSurroundings(lx, ly) {
+  const cx = Math.floor(lx), cy = Math.floor(ly);
+  let water = 0, wx = 0, near = 99, urban = 0, green = 0, n = 0;
+  for (let dy = -7; dy <= 7; dy++) for (let dx = -8; dx <= 8; dx++) {
+    const x = cx + dx, y = cy + dy;
+    if (!inb(x, y)) continue;
+    n++;
+    const t = grid[idx(x, y)], d = Math.hypot(dx, dy);
+    if (t === T.WATER && !isPond(x, y)) { const w = 1 / (1 + d * d * .15); water += w; wx += dx * w; near = Math.min(near, d); }
+    else if (t === T.BUILDING || t === T.ROAD || t === T.PAVE) urban++;
+    else if (t === T.GRASS || t === T.TREE || t === T.FIELD || t === T.FLOWER || t === T.HEDGE) green++;
+  }
+  let people = 0;
+  for (const c of chars) if ((!c.folk || c.out) && Math.abs(c.x - lx) < 8 && Math.abs(c.y - ly) < 6) people++;
+  return { near, pan: water ? clamp(wx / water / 5, -.8, .8) : 0, urban: n ? urban / n : 0, green: n ? green / n : 0, people };
+}
+function updateAudio(dt) {
+  if (!actx || actx.state !== 'running') return;
+  if (!amb) buildAmbience();
+  const on = state.sound && state.ambience;
+  setG(amb.bus.gain, on ? (state.mode === 'modal' ? .45 : 1) : 0, .4);
+  if (!on) return;
+  const title = state.mode === 'title';
+  const lx = title ? camFX / TS : player.px / TS + .5, ly = title ? camFY / TS : player.py / TS + .5;
+  if ((amb.scan -= dt) <= 0) {
+    amb.scan = .25;
+    const e = amb.env = scanSurroundings(lx, ly);
+    const river = Math.pow(clamp(1 - (e.near - 1) / 8, 0, 1), 1.5);
+    setG(amb.river.g.gain, river * .2);
+    if (amb.river.p) { setG(amb.river.p.pan, e.pan); setG(amb.babble.p.pan, e.pan); }
+    const gust = (windAt(lx, ly) + 1) / 2;
+    setG(amb.wind.g.gain, (.012 + .05 * e.green) * (.45 + .55 * gust), .6);
+    setG(amb.wF.frequency, 280 + 260 * gust, .8);
+    const day = 1 - sky.dark * .85;
+    amb.murmurLevel = day * clamp(e.urban * .55 + e.people * .07, 0, .8) * .55;
+  }
+  const e = amb.env, near = e.near;
+  // babbling water and the flutter of voices are re-randomised many times a second
+  if ((amb.flutter -= dt) <= 0) {
+    amb.flutter = .07 + Math.random() * .08;
+    const river = Math.pow(clamp(1 - (near - 1) / 8, 0, 1), 1.5);
+    setG(amb.babble.g.gain, river * (.03 + Math.random() * .07), .05);
+    setG(amb.rBab.frequency, 700 + Math.random() * 1100, .06);
+    const m = amb.murmurLevel || 0;
+    setG(amb.murmurA.g.gain, m * (.5 + Math.random() * .7), .08);
+    setG(amb.murmurB.g.gain, m * .35 * (.3 + Math.random()), .06);
+    setG(amb.m1.frequency, 360 + Math.random() * 200, .1);
+    setG(amb.m2.frequency, 900 + Math.random() * 600, .1);
+  }
+  // occasional sounds
+  const N = amb.next, rnd = (a, b) => a + Math.random() * (b - a), side = () => rnd(-.7, .7);
+  const h = lightHour(), dawn = h > 5.6 && h < 8.6 ? 3 : 1;
+  for (const k in N) N[k] -= dt;
+  if (N.bird <= 0) { N.bird = rnd(1.5, 5) / dawn; if (sky.dark < .45 && e.green > .2) SND.chirp(side(), .012 + .03 * e.green); }
+  if (N.owl <= 0) { N.owl = rnd(16, 40); if (sky.dark > .7 && e.green > .15 && Math.random() < .6) SND.owl(side(), .05); }
+  if (N.duck <= 0) { N.duck = rnd(7, 20); if (near < 5 && sky.dark < .8) SND.quack(e.pan, .03 * (1 - near / 6)); }
+  if (N.plip <= 0) { N.plip = rnd(.35, 1.6); if (near < 3.5) SND.plip(e.pan + rnd(-.3, .3), .02 * (1 - near / 4)); }
+  if (N.coo <= 0) {
+    N.coo = rnd(3.5, 9);
+    if (!roosting()) {
+      const p = pigeons.find(q => q.st === 'ground' && Math.abs(q.x / TS - lx) < 5 && Math.abs(q.y / TS - ly) < 4);
+      if (p) SND.coo(clamp((p.x / TS - lx) / 5, -.8, .8), .03);
+    }
+  }
+  // church bells strike the hour (between 7am and 10pm)
+  const hour = Math.floor(h);
+  if (amb.bellHour === null || title) amb.bellHour = hour;
+  else if (hour !== amb.bellHour) {
+    amb.bellHour = hour;
+    if (hour >= 7 && hour <= 22) {
+      let best = null, bd = 1e9;
+      for (const [cx, cy] of CHURCHES) { const d = Math.hypot(cx - lx, cy - ly); if (d < bd) { bd = d; best = [cx, cy]; } }
+      SND.bell(hour % 12 || 12, clamp((best[0] - lx) / 20, -.8, .8), .09 * clamp(1 - bd / 50, .3, 1));
+    }
+  }
+}
+
 /* ---------- Dialogue ---------- */
 const dlg = { queue: [], cur: null, shown: 0, onEnd: null, lastBlip: 0 };
 function say(lines, onEnd) {
@@ -2419,6 +2615,10 @@ function updatePlayer(dt) {
         const why = blockedReason(nx, ny);
         if (!why) {
           player.moving = true; player.fx = dx; player.fy = dy; player.t = 0;
+          if (actx && state.sound && state.ambience) {
+            const g = grid[idx(nx, ny)];
+            SND.step(g === T.BRIDGE ? 'bridge' : g === T.ROAD ? 'road' : g === T.PAVE ? 'pave' : g === T.DIRT ? 'dirt' : 'grass');
+          }
           if (runHeld) dustAt(player.px + 8 - dx * 4, player.py + 15, 2, -dx * 12);
           else if (grid[idx(player.tx, player.ty)] === T.GRASS && Math.random() < .35)
             spawn({ kind: 'fleck', layer: 'under', x: player.px + 6 + Math.random() * 4, y: player.py + 14, vx: Math.random() * 16 - 8, vy: -18, g: 60, life: .35, col: '#5fae44' });
@@ -2712,6 +2912,7 @@ function menuView() {
         <button class="btn" data-act="route" ${complete ? '' : 'disabled'}>Walking Route <span>${complete ? 'real-world' : 'after the survey'}</span></button>
         <button class="btn" data-act="time">Time of day: ${{ cycle: 'Day & night', day: 'Always day', local: 'My clock' }[state.timeMode]} <span>${clockText()}</span></button>
         <button class="btn" data-act="sound">Sound: ${state.sound ? 'On' : 'Off'}</button>
+        <button class="btn" data-act="ambience" ${state.sound ? '' : 'disabled'}>Ambience: ${state.ambience ? 'On' : 'Off'} <span>river, town, birds, bells</span></button>
         <button class="btn" data-act="motion">Motion: ${state.motion === 'reduced' ? 'Reduced' : 'Full'} <span>camera, shake, effects</span></button>
         <button class="btn" data-act="help">How to Play</button>
         <button class="btn" data-act="title">Return to Title</button>
@@ -2726,9 +2927,10 @@ function menuView() {
       if (act === 'finale') openModal(finaleView);
       if (act === 'route') openModal(routeView);
       if (act === 'help') openModal(helpView);
-      if (act === 'time') { state.timeMode = { cycle: 'day', day: 'local', local: 'cycle' }[state.timeMode]; lastClockShown = ''; save(); renderModal(); }
+      if (act === 'time') { state.timeMode = { cycle: 'day', day: 'local', local: 'cycle' }[state.timeMode]; lastClockShown = ''; if (amb) amb.bellHour = null; save(); renderModal(); }
       if (act === 'motion') { state.motion = state.motion === 'reduced' ? 'full' : 'reduced'; applyMotion(); save(); renderModal(); }
       if (act === 'sound') { state.sound = !state.sound; if (state.sound) ensureAudio(); save(); renderModal(); }
+      if (act === 'ambience') { state.ambience = !state.ambience; ensureAudio(); save(); renderModal(); }
       if (act === 'title') { save(); closeAllModals('title'); showTitle(); }
       if (act === 'reset') openModal(confirmResetView);
     }
@@ -2750,6 +2952,8 @@ const helpView = {
     <p class="small">Walk: arrow keys / WASD / D-pad · Talk, read, continue: Space, Enter or Z / A button · Hurry: hold Shift or X / B button · Menu: Esc · Journal: J · Timeline: T · Map: M</p>
     <h3>Day and night</h3>
     <p class="small">A day in Shrewsbury lasts ${CONFIG.dayLengthMinutes} minutes. Lamps and windows light up after dusk, and most passers-by head home late. In the menu you can keep it always day, or follow your device's clock.</p>
+    <h3>Sound</h3>
+    <p class="small">Ambient sound follows you around town: the river grows louder as you approach the Severn, the streets murmur by day, birds sing in the parks, owls call at night and the church bells strike the hour. Turn Ambience or all Sound off in the menu.</p>
     <h3>Install</h3>
     <p class="small">This game works offline. On a phone, use your browser's "Add to Home Screen" (or the Install button on the title screen) to keep it as an app.</p>
     <div class="btnrow"><button class="btn primary" data-act="close" data-focus>Close</button></div>`
@@ -2793,7 +2997,7 @@ function save() {
   try {
     localStorage.setItem(CONFIG.saveKey, JSON.stringify({
       v: 1, x: player.tx, y: player.ty, dir: player.dir, found: state.found, met: state.met,
-      flags: state.flags, sound: state.sound, motion: state.motion, clock: state.clock, timeMode: state.timeMode, fog: b64(fog), at: Date.now()
+      flags: state.flags, sound: state.sound, motion: state.motion, clock: state.clock, timeMode: state.timeMode, ambience: state.ambience, fog: b64(fog), at: Date.now()
     }));
     fogDirty = false;
   } catch (e) { /* storage full or unavailable: play on */ }
@@ -2807,6 +3011,7 @@ function applySave(d) {
   if (d.motion) { state.motion = d.motion; applyMotion(); }
   state.clock = typeof d.clock === 'number' ? d.clock : CONFIG.startHour;
   state.timeMode = ['cycle', 'day', 'local'].includes(d.timeMode) ? d.timeMode : 'cycle';
+  state.ambience = d.ambience !== false;
   fog.fill(0);
   if (d.fog) try { unb64(d.fog, fog); } catch (e) { fog.fill(0); }
   refreshFogAll();
@@ -2822,6 +3027,7 @@ function placePlayer(x, y, dir) {
 }
 
 /* ---------- Title, new game, continue ---------- */
+function loadAudioPrefs() { const d = loadSave(); if (d) { state.sound = d.sound !== false; state.ambience = d.ambience !== false; } }
 function showTitle() {
   state.mode = 'title';
   $('hud').classList.add('hidden'); $('dialogue').classList.add('hidden');
@@ -2834,6 +3040,7 @@ function showTitle() {
 function startPlay() {
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
   state.mode = 'play'; lastPctShown = -1; lastFoundShown = -1; lastArea = ''; camFX = null;
+  if (amb) amb.bellHour = null;   // don't ring for the jump from the title screen's clock
   const fade = $('fade'); fade.classList.add('on');
   requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove('on')));
   updatePlayer(0); updateHud();
@@ -2896,6 +3103,7 @@ function frame(now) {
   else if (state.mode === 'collect') updateCollect(dt);
   if (state.mode !== 'title' && state.mode !== 'modal') updateChars(dt);
   updateAmbient(dt);
+  updateAudio(dt);
   if (flashT > 0) flashT -= dt;
   if (state.mode !== 'title') {
     updateHud();
@@ -2907,7 +3115,11 @@ function frame(now) {
   render(dt);
   requestAnimationFrame(frame);
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden && state.mode !== 'title') save(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.mode !== 'title') save();
+  if (actx) { if (document.hidden) actx.suspend(); else if (state.sound) actx.resume(); }
+});
+window.addEventListener('pointerdown', () => ensureAudio(), { capture: true });
 window.addEventListener('pagehide', () => { if (state.mode !== 'title') save(); });
 window.addEventListener('resize', resize);
 
@@ -2922,6 +3134,7 @@ initGlows();
 applyMotion();
 resize();
 setupTouch();
+loadAudioPrefs();
 showTitle();
 requestAnimationFrame(frame);
 </script>

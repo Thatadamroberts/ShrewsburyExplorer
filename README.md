@@ -9,6 +9,7 @@ All of the game is in **`index.html`**: Canvas API, vanilla JavaScript, and ever
 - **Desktop:** open `index.html` in a browser. Arrow keys or WASD to walk, Space/Enter/Z to talk and read, hold Shift/X to hurry, Esc for the menu, J for the journal, T for the timeline, M for the map.
 - **Phone:** there's an on-screen D-pad with A and B buttons.
 - **Day and night:** a day lasts 12 real minutes. Windows and lamps light up after dusk, and most passers-by go home late. The menu's *Time of day* setting switches between the cycle, *Always day*, and your device's own clock.
+- **Sound:** an ambient soundscape is synthesised live (no audio files): the river, town murmur, wind, birdsong, owls, ducks, pigeons, church bells on the hour and footsteps that change with the ground. Turn *Ambience* or all *Sound* off in the menu.
 - **Motion:** the menu has a *Motion* setting (Full / Reduced) that turns off camera easing, screen shake, flashes and UI animation. It starts as Reduced if your device asks for reduced motion.
 
 ### Install as an app (works offline)

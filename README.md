@@ -8,6 +8,7 @@ All of the game is in **`index.html`**: Canvas API, vanilla JavaScript, and ever
 
 - **Desktop:** open `index.html` in a browser. Arrow keys or WASD to walk, Space/Enter/Z to talk and read, hold Shift/X to hurry, Esc for the menu, J for the journal, T for the timeline, M for the map.
 - **Phone:** there's an on-screen D-pad with A and B buttons.
+- **Motion:** the menu has a *Motion* setting (Full / Reduced) that turns off camera easing, screen shake, flashes and UI animation. It starts as Reduced if your device asks for reduced motion.
 
 ### Install as an app (works offline)
 
@@ -39,6 +40,7 @@ All content is in labelled objects at the top of the `<script>` in `index.html`:
 7. `STORY`: intro, unlock messages, final summary
 8. `ROUTE`: the real-world walking route
 9. `ERAS`: the headings used on the timeline
+10. `AMBIENT`: decorative life — passers-by and their lines, pigeon flocks, swans and ducks, lamp glows, cloud shadows
 
 If a relic, NPC or sign ends up somewhere the player can't reach, a warning appears in the browser console.
 

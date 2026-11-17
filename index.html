@@ -152,6 +152,34 @@ button.card:hover{background:#fff6dd}
 #titleCard .foot{margin-top:16px;font-size:11px;color:var(--ink-soft);line-height:1.5}
 #installBtn{margin-top:4px}
 
+/* ---------- UI motion ---------- */
+@keyframes popIn{from{opacity:0;transform:translateX(-50%) translateY(12px) scale(.96)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes boxIn{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes floaty{50%{transform:translateY(-4px)}}
+@keyframes bump{30%{transform:scale(1.6);color:var(--accent)}}
+@keyframes titleBob{50%{transform:translateY(-4px)}}
+#dialogue{animation:popIn .2s cubic-bezier(.2,1.3,.4,1)}
+#modal{animation:fadeIn .18s ease-out}
+#modalBox.pop{animation:boxIn .22s cubic-bezier(.2,1.35,.4,1)}
+#titleCard{animation:boxIn .6s cubic-bezier(.2,1.2,.4,1)}
+#titleCard h1{animation:titleBob 3.4s ease-in-out infinite}
+.relic-img{animation:floaty 2.6s ease-in-out infinite}
+#relicCount{display:inline-block}
+#relicCount.bump{animation:bump .5s ease-out}
+#areaBanner{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+#toast{transition:opacity .25s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+#prompt{animation:fadeIn .15s}
+.btn{transition:transform .08s,box-shadow .08s,filter .15s}
+.btn:hover:not([disabled]){filter:brightness(1.04)}
+.card,.tl-item{transition:transform .12s}
+button.card:hover,.tl-item:hover{transform:translateY(-2px)}
+.pad-btn{transition:transform .06s,box-shadow .06s}
+.bar i{transition:width .4s ease-out}
+#fade{position:fixed;inset:0;background:#17152e;opacity:0;pointer-events:none;transition:opacity .7s ease-out;z-index:7}
+#fade.on{opacity:1;transition:none}
+body.reduced *{animation:none !important;transition:none !important}
+
 @media (max-width:560px){
   #minimap{width:104px;height:83px}
   #stats{font-size:12px;min-width:132px;padding:7px 10px}
@@ -208,6 +236,7 @@ button.card:hover{background:#fff6dd}
   <div class="next" id="dlgNext">&#9660;</div>
 </div>
 
+<div id="fade"></div>
 <div id="modal" class="hidden" role="dialog" aria-modal="true"><div id="modalBox" class="box"></div></div>
 
 <div id="title">
@@ -667,6 +696,43 @@ const ERAS = [
   { name: 'The twentieth century', to: 3000 }
 ];
 
+/* ---------- 10. AMBIENT LIFE ---------- */
+// Purely decorative: passers-by, birds, lamp glows and weather. Tile coordinates.
+const AMBIENT = {
+  // Passers-by walk the streets of the district they start in. Talk to them for a line from folkLines.
+  folk: [
+    { x: 49, y: 25 }, { x: 57, y: 29 }, { x: 51, y: 35 }, { x: 58, y: 18 },   // centre
+    { x: 30, y: 36 }, { x: 13, y: 36 }, { x: 43, y: 52 },                    // west
+    { x: 90, y: 45 }, { x: 66, y: 41 },                                      // east
+    { x: 49, y: 7 }                                                          // north
+  ],
+  folkLooks: [
+    { coat: '#8a3a4a', legs: '#2f2f40', skin: '#f0c8a4', hair: '#2a1e16', hat: 'cap', hatCol: '#3a4a6a', accent: '#f4f4f4' },
+    { coat: '#3f6a8a', legs: '#2a2a38', skin: '#c8906a', hair: '#1e1a16', skirt: true, accent: '#f0e0c0' },
+    { coat: '#6a7a3a', legs: '#3a3226', skin: '#f2d0b0', hair: '#c89a5a', scarf: '#e8c040' },
+    { coat: '#b06a2a', legs: '#2a2a38', skin: '#8a5a3a', hair: '#1a1410', accent: '#f4f4f4' },
+    { coat: '#4a4a5a', legs: '#24242e', skin: '#f0c8a4', hair: '#9a9a9a', hat: 'bowler', hatCol: '#2a2a33', accent: '#e0e0e0' },
+    { coat: '#c4577a', legs: '#33304a', skin: '#e8b896', hair: '#6a2a1a', skirt: true, accent: '#ffffff' }
+  ],
+  folkLines: [
+    `You'll hear "Shroos-bree" and "Shrows-bree" in the same pub, sometimes from the same person. Nobody has ever won that argument.`,
+    `Those narrow passages between the shops are shuts. Locals use them as shortcuts. Visitors use them to get lost.`,
+    `Look up above the shop fronts. Plenty of these streets are plate glass at eye level and old timber above it.`,
+    `When the Severn's high, the Quarry turns into a lake and the ducks get ideas above their station.`,
+    `Pride Hill on a Saturday afternoon is a test of anyone's patience. Go early.`,
+    `There's a plaque for nearly everything in this town. Sooner or later you start reading them for pleasure.`,
+    `People come for Darwin and Brother Cadfael. They stay because they can't find their way out of the shuts.`,
+    `Mind the hill on Wyle Cop. And the cyclists. And the cyclists coming down the hill.`,
+    `My grandmother remembered the old livestock market. This was a farming town long before it was a shopping one.`,
+    `I walk the river loop most mornings. It's one of the few walks in town that isn't uphill both ways.`
+  ],
+  pigeonFlocks: [[49, 37], [86, 46], [36, 45], [56, 18], [32, 36], [41, 20], [51, 9]],
+  pigeonsPerFlock: 5,
+  waterfowl: 9,          // swans and ducks drifting on the Severn
+  clouds: 6,             // soft cloud shadows crossing the town
+  glows: [[65.5, 37.2], [56, 13.4], [48.5, 36.4], [82.9, 42.4], [38, 43.6], [43, 26.5]]   // warm lights by doors
+};
+
 /* ==========================================================================
    ENGINE — you shouldn't need to edit below this line to change content.
    ========================================================================== */
@@ -918,11 +984,9 @@ function drawTile(g, x, y) {
           rect(g, fx, fy, 2, 2, fc[(k + x + y) % 5]); rect(g, fx, fy + 2, 1, 1, '#3f8a35');
         }
       }
-      if (t === T.TREE) {
-        rect(g, X + 6, Y + 10, 4, 5, '#6b4424'); rect(g, X + 7, Y + 10, 1, 5, '#8a5a32');
-        rect(g, X + 2, Y + 14, 12, 2, 'rgba(0,0,0,.18)');
-        disc(g, X + 8, Y + 7, 7, '#1d5223'); disc(g, X + 8, Y + 7, 6, '#2f8f3a'); disc(g, X + 6, Y + 5, 3, '#4fb34f');
-        rect(g, X + 5, Y + 4, 1, 1, '#8fe07a'); rect(g, X + 10, Y + 9, 2, 1, '#257230');
+      if (t === T.TREE) {   // trunk and shadow only; the canopy is drawn live so it can sway
+        rect(g, X + 1, Y + 13, 14, 3, 'rgba(0,0,0,.2)'); rect(g, X + 3, Y + 12, 10, 1, 'rgba(0,0,0,.12)');
+        rect(g, X + 6, Y + 8, 4, 7, '#6b4424'); rect(g, X + 7, Y + 8, 1, 7, '#8a5a32');
       }
       break;
     case T.WATER: {
@@ -989,6 +1053,14 @@ function drawTile(g, x, y) {
   }
 }
 
+function drawTreeCanopy(g, X, Y, s) {
+  const o = Math.round(s * .6), h = Math.round(s);
+  disc(g, X + 8 + o, Y + 4, 8, '#1d5223'); disc(g, X + 8 + o, Y + 4, 7, '#2f8f3a');
+  disc(g, X + 10 + o, Y + 7, 4, '#287a31');
+  disc(g, X + 6 + h, Y + 1, 3, '#4fb34f');
+  rect(g, X + 4 + h, Y, 1, 1, '#8fe07a'); rect(g, X + 11 + o, Y + 9, 2, 1, '#215f28');
+}
+
 /* ---------- Building art ---------- */
 const WALLS = { timber: '#f3ecda', brick: '#b9583f', stucco: '#efe2c0', stone: '#d9bd8e', red: '#b25a40' };
 function roofBlock(g, X, Y, W, H, col) {
@@ -1042,7 +1114,8 @@ function facade(g, X, Y, W, H, style, r, shop) {
   rect(g, X, Y + H - 1, W, 1, OUT);
 }
 function outline(g, X, Y, W, H) { g.strokeStyle = OUT; g.lineWidth = 1; g.strokeRect(X + .5, Y + .5, W - 1, H - 1); }
-function chimney(g, x, y) { rect(g, x - 1, y - 1, 6, 8, OUT); rect(g, x, y, 4, 7, '#a24a35'); rect(g, x, y, 4, 2, '#5a5050'); }
+const chimneys = [];
+function chimney(g, x, y) { chimneys.push({ x: x + 2, y: y - 1, t: Math.random() * 3 }); rect(g, x - 1, y - 1, 6, 8, OUT); rect(g, x, y, 4, 7, '#a24a35'); rect(g, x, y, 4, 2, '#5a5050'); }
 function crenels(g, X, Y, W, col) {
   for (let xx = X; xx < X + W - 2; xx += 5) { rect(g, xx, Y - 3, 4, 4, OUT); rect(g, xx + 1, Y - 2, 2, 3, col); }
 }
@@ -1212,6 +1285,7 @@ function drawLandmark(g, b) {
       for (let yy = Y + 31; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, '#a04a34');
       for (let row = 0; row < 5; row++) for (let xx = X + 4; xx < X + W - 4; xx += 8) { rect(g, xx, Y + 33 + row * 12, 5, 7, '#f4ead2'); rect(g, xx + 1, Y + 34 + row * 12, 3, 5, '#4f6f8f'); }
       outline(g, X, Y, W, H);
+      chimneys.push({ x: X + W - 7, y: Y - 5, t: 0, big: true });
       rect(g, X + W - 12, Y - 4, 9, 30, OUT); rect(g, X + W - 11, Y - 3, 7, 28, '#a24a35'); rect(g, X + W - 12, Y - 4, 9, 3, '#3a3a40');
       break;
     }
@@ -1291,6 +1365,9 @@ function drawProp(g, p) {
 /* ---------- Pre-rendered map ---------- */
 const mapCanvas = document.createElement('canvas');
 mapCanvas.width = MW * TS; mapCanvas.height = MH * TS;
+const overviewCanvas = document.createElement('canvas');
+overviewCanvas.width = MW * 8; overviewCanvas.height = MH * 8;
+const treeTiles = [];
 const mmBase = document.createElement('canvas');
 mmBase.width = MW; mmBase.height = MH;
 function renderMap() {
@@ -1304,6 +1381,12 @@ function renderMap() {
   const MMC = ['#6f9f4e', '#7ccb58', '#4ba0e8', '#e2d6bb', '#efe5cf', '#ddc28c', '#e6c68e', '#2f8f3a', '#3e9440', '#e88aa8', '#6b5d50', '#b5654a', '#9a5a48'];
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { m.fillStyle = MMC[grid[idx(x, y)]]; m.fillRect(x, y, 1, 1); }
   for (const b of buildings) { m.fillStyle = b.kind === 'house' ? b.roof : '#c0583a'; m.fillRect(b.x, b.y, b.w, b.h); }
+  // Half-size overview with static trees, for Thorne's Map
+  const o = overviewCanvas.getContext('2d');
+  o.imageSmoothingEnabled = true; o.drawImage(mapCanvas, 0, 0, MW * 8, MH * 8);
+  o.save(); o.scale(.5, .5);
+  for (let i = 0; i < grid.length; i++) if (grid[i] === T.TREE) { treeTiles.push(i); drawTreeCanopy(o, (i % MW) * TS, ((i / MW) | 0) * TS, 0); }
+  o.restore();
 }
 
 /* ---------- Relic pixel art (32x32, drawn in code) ---------- */
@@ -1388,36 +1471,37 @@ const RELIC_ART = {
     rect(g, 15, 28, 2, 2, '#3a3a3a'); rect(g, 27, 15, 2, 2, '#d98a8a');
   }
 };
-const relicImg = {};
+const relicImg = {}, relicCanvas = {};
 function renderRelicArt() {
   for (const r of RELICS) {
     const c = document.createElement('canvas'); c.width = 32; c.height = 32;
     RELIC_ART[r.id](c.getContext('2d'));
-    relicImg[r.id] = c.toDataURL();
+    relicImg[r.id] = c.toDataURL(); relicCanvas[r.id] = c;
   }
 }
 
 /* ---------- People ---------- */
-function drawPerson(g, x, y, dir, frame, L) {
-  const ox = Math.round(x), oy = Math.round(y) - 6;
+// o.bob lifts the upper body (walk bounce, breathing); o.blink closes the eyes.
+function drawPerson(g, x, y, dir, frame, L, o = {}) {
+  const ox = Math.round(x), oy = Math.round(y) - 6, u = oy + (o.bob | 0);
   rect(g, ox + 4, oy + 20, 8, 2, 'rgba(0,0,0,.25)'); rect(g, ox + 3, oy + 21, 10, 1, 'rgba(0,0,0,.15)');
   if (dir === 'left' || dir === 'right') {
     g.save();
     if (dir === 'left') { g.translate(ox * 2 + 16, 0); g.scale(-1, 1); }
-    // legs
     const a = frame === 1 ? 1 : frame === 2 ? -1 : 0;
     if (!L.skirt) {
       rect(g, ox + 5 - a, oy + 15, 4, 5, OUT); rect(g, ox + 6 - a, oy + 15, 2, 4, shade(L.legs, -.2));
       rect(g, ox + 7 + a, oy + 15, 4, 5, OUT); rect(g, ox + 8 + a, oy + 15, 2, 4, L.legs);
     } else { rect(g, ox + 5 - a, oy + 18, 3, 2, OUT); rect(g, ox + 8 + a, oy + 18, 3, 2, OUT); }
-    rect(g, ox + 4, oy + 9, 8, L.skirt ? 10 : 8, OUT); rect(g, ox + 5, oy + 10, 6, L.skirt ? 8 : 6, L.coat);
-    if (L.scarf) rect(g, ox + 5, oy + 9, 6, 2, L.scarf);
-    if (L.satchel) rect(g, ox + 4, oy + 12, 3, 4, L.satchel);
-    rect(g, ox + 7 + a, oy + 10, 3, 6, OUT); rect(g, ox + 8 + a, oy + 11, 1, 4, shade(L.coat, .15)); rect(g, ox + 8 + a, oy + 15, 1, 1, L.skin);
-    rect(g, ox + 3, oy + 1, 10, 9, OUT); rect(g, ox + 4, oy + 2, 8, 7, L.skin);
-    rect(g, ox + 4, oy + 2, 8, 2, L.hair); rect(g, ox + 4, oy + 2, 4, 6, L.hair);
-    rect(g, ox + 10, oy + 5, 1, 2, OUT); rect(g, ox + 12, oy + 6, 1, 1, L.skin);
-    hat(g, ox, oy, L, true);
+    rect(g, ox + 4, u + 9, 8, L.skirt ? 10 - (o.bob | 0) : 8, OUT); rect(g, ox + 5, u + 10, 6, L.skirt ? 8 - (o.bob | 0) : 6, L.coat);
+    if (L.scarf) rect(g, ox + 5, u + 9, 6, 2, L.scarf);
+    if (L.satchel) rect(g, ox + 4, u + 12, 3, 4, L.satchel);
+    rect(g, ox + 7 + a, u + 10, 3, 6, OUT); rect(g, ox + 8 + a, u + 11, 1, 4, shade(L.coat, .15)); rect(g, ox + 8 + a, u + 15, 1, 1, L.skin);
+    rect(g, ox + 3, u + 1, 10, 9, OUT); rect(g, ox + 4, u + 2, 8, 7, L.skin);
+    rect(g, ox + 4, u + 2, 8, 2, L.hair); rect(g, ox + 4, u + 2, 4, 6, L.hair);
+    if (o.blink) rect(g, ox + 10, u + 6, 1, 1, OUT); else rect(g, ox + 10, u + 5, 1, 2, OUT);
+    rect(g, ox + 12, u + 6, 1, 1, L.skin);
+    hat(g, ox, u, L, true);
     g.restore();
     return;
   }
@@ -1426,22 +1510,24 @@ function drawPerson(g, x, y, dir, frame, L) {
     rect(g, ox + 4, oy + 15 + l1, 4, 5, OUT); rect(g, ox + 5, oy + 15 + l1, 2, 4, L.legs);
     rect(g, ox + 8, oy + 15 + l2, 4, 5, OUT); rect(g, ox + 9, oy + 15 + l2, 2, 4, L.legs);
   } else { rect(g, ox + 5, oy + 18 + l1, 3, 2, OUT); rect(g, ox + 8, oy + 18 + l2, 3, 2, OUT); }
-  rect(g, ox + 3, oy + 9, 10, L.skirt ? 10 : 8, OUT); rect(g, ox + 4, oy + 10, 8, L.skirt ? 8 : 6, L.coat);
-  rect(g, ox + 4, oy + 10, 1, L.skirt ? 8 : 6, shade(L.coat, .18));
+  const bodyH = L.skirt ? 10 - (o.bob | 0) : 8;
+  rect(g, ox + 3, u + 9, 10, bodyH, OUT); rect(g, ox + 4, u + 10, 8, bodyH - 2, L.coat);
+  rect(g, ox + 4, u + 10, 1, bodyH - 2, shade(L.coat, .18));
   if (dir === 'down') {
-    if (L.scarf) { rect(g, ox + 4, oy + 9, 8, 2, L.scarf); rect(g, ox + 9, oy + 11, 2, 3, L.scarf); }
-    else rect(g, ox + 7, oy + 10, 2, 3, L.accent || '#fff');
-    if (L.satchel) line(g, ox + 4, oy + 10, ox + 11, oy + 15, L.satchel);
-  } else if (L.satchel) rect(g, ox + 5, oy + 11, 6, 4, L.satchel);
-  rect(g, ox + 2, oy + 10 + l2, 2, 6, OUT); rect(g, ox + 2, oy + 15 + l2, 2, 1, L.skin);
-  rect(g, ox + 12, oy + 10 + l1, 2, 6, OUT); rect(g, ox + 12, oy + 15 + l1, 2, 1, L.skin);
-  rect(g, ox + 3, oy + 1, 10, 9, OUT); rect(g, ox + 4, oy + 2, 8, 7, L.skin);
+    if (L.scarf) { rect(g, ox + 4, u + 9, 8, 2, L.scarf); rect(g, ox + 9, u + 11, 2, 3, L.scarf); }
+    else rect(g, ox + 7, u + 10, 2, 3, L.accent || '#fff');
+    if (L.satchel) line(g, ox + 4, u + 10, ox + 11, u + 15, L.satchel);
+  } else if (L.satchel) rect(g, ox + 5, u + 11, 6, 4, L.satchel);
+  rect(g, ox + 2, u + 10 + l2, 2, 6, OUT); rect(g, ox + 2, u + 15 + l2, 2, 1, L.skin);
+  rect(g, ox + 12, u + 10 + l1, 2, 6, OUT); rect(g, ox + 12, u + 15 + l1, 2, 1, L.skin);
+  rect(g, ox + 3, u + 1, 10, 9, OUT); rect(g, ox + 4, u + 2, 8, 7, L.skin);
   if (dir === 'down') {
-    rect(g, ox + 4, oy + 2, 8, 2, L.hair); rect(g, ox + 4, oy + 4, 1, 2, L.hair); rect(g, ox + 11, oy + 4, 1, 2, L.hair);
-    rect(g, ox + 6, oy + 5, 1, 2, OUT); rect(g, ox + 9, oy + 5, 1, 2, OUT);
-    rect(g, ox + 5, oy + 7, 1, 1, '#f0a0a0'); rect(g, ox + 10, oy + 7, 1, 1, '#f0a0a0');
-  } else rect(g, ox + 4, oy + 2, 8, 6, L.hair);
-  hat(g, ox, oy, L, false);
+    rect(g, ox + 4, u + 2, 8, 2, L.hair); rect(g, ox + 4, u + 4, 1, 2, L.hair); rect(g, ox + 11, u + 4, 1, 2, L.hair);
+    if (o.blink) { rect(g, ox + 5, u + 6, 2, 1, OUT); rect(g, ox + 9, u + 6, 2, 1, OUT); }
+    else { rect(g, ox + 6, u + 5, 1, 2, OUT); rect(g, ox + 9, u + 5, 1, 2, OUT); }
+    rect(g, ox + 5, u + 7, 1, 1, '#f0a0a0'); rect(g, ox + 10, u + 7, 1, 1, '#f0a0a0');
+  } else rect(g, ox + 4, u + 2, 8, 6, L.hair);
+  hat(g, ox, u, L, false);
 }
 function hat(g, ox, oy, L, side) {
   if (!L.hat) return;
@@ -1457,9 +1543,28 @@ const state = {
   found: [], met: {}, flags: {}, sound: true,
   unlockedZones: new Set(['centre'])
 };
-const player = { tx: MAP_DATA.start.x, ty: MAP_DATA.start.y, px: 0, py: 0, dir: 'down', moving: false, fx: 0, fy: 0, t: 0, step: 0 };
-const npcs = NPCS.map(n => ({ ...n, baseDir: n.dir, turnT: 2 + Math.random() * 3 }));
+state.motion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'full';
+const player = { tx: MAP_DATA.start.x, ty: MAP_DATA.start.y, px: 0, py: 0, dir: 'down', moving: false, fx: 0, fy: 0, t: 0, step: 0, idleT: 1, turnT: 0, bumpT: 0 };
+// Characters: the five townsfolk plus passers-by. npcAt maps an occupied tile to whoever is on it.
+function makeChar(o, folk) {
+  return { ...o, folk, hx: o.x, hy: o.y, px: o.x * TS, py: o.y * TS, moving: false, fx: 0, fy: 0, t: 0, step: 0,
+    dir: o.dir || 'down', baseDir: o.dir || 'down', turnT: 2 + Math.random() * 3, paceT: 4 + Math.random() * 6,
+    pauseT: Math.random() * 2, talkT: 0, ph: Math.random() * 5, zone: 0, speed: folk ? 2.6 : 2.2, line: Math.floor(Math.random() * 99) };
+}
+const npcs = NPCS.map(n => makeChar(n, false));
+const folk = [];
+const chars = [...npcs];
 const npcAt = new Map(npcs.map(n => [idx(n.x, n.y), n]));
+function initFolk() {
+  for (const n of npcs) n.zone = zoneGrid[idx(n.hx, n.hy)];
+  AMBIENT.folk.forEach((f, i) => {
+    const k = idx(f.x, f.y);
+    if (!inb(f.x, f.y) || !WALKABLE[grid[k]] || solidProp[k] || npcAt.has(k)) return console.warn('Passer-by cannot stand at', f.x, f.y);
+    const c = makeChar({ x: f.x, y: f.y, name: 'Passer-by', look: AMBIENT.folkLooks[i % AMBIENT.folkLooks.length], dir: 'down' }, true);
+    c.zone = zoneGrid[k];
+    folk.push(c); chars.push(c); npcAt.set(k, c);
+  });
+}
 let time = 0;
 
 /* ---------- Fog of war ---------- */
@@ -1511,13 +1616,13 @@ const tileRevealed = (x, y) => fog[(y * 2 + 1) * FW + x * 2 + 1] >= 128;
 /* ---------- Zones ---------- */
 const zoneAt = (x, y) => ZONES[zoneGrid[idx(x, y)]];
 const zoneOpen = z => state.found.length >= z.unlockAt;
-let barrierTiles = [];
+let barrierTiles = [], barrierSet = new Set();
 function computeBarriers() {
-  barrierTiles = [];
+  barrierTiles = []; barrierSet = new Set();
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
     const i = idx(x, y);
     if (!WALKABLE[grid[i]] || solidProp[i] || zoneOpen(zoneAt(x, y))) continue;
-    if (D4.some(([dx, dy]) => inb(x + dx, y + dy) && WALKABLE[grid[idx(x + dx, y + dy)]] && zoneOpen(zoneAt(x + dx, y + dy)))) barrierTiles.push([x, y]);
+    if (D4.some(([dx, dy]) => inb(x + dx, y + dy) && WALKABLE[grid[idx(x + dx, y + dy)]] && zoneOpen(zoneAt(x + dx, y + dy)))) { barrierTiles.push([x, y]); barrierSet.add(i); }
   }
 }
 function blockedReason(x, y) {
@@ -1546,29 +1651,327 @@ function setCamera(cx, cy) {
   camX = Math.round(camX); camY = Math.round(camY);
 }
 
-/* ---------- Rendering ---------- */
-function drawWaterShimmer() {
-  const x0 = Math.max(0, Math.floor(camX / TS)), y0 = Math.max(0, Math.floor(camY / TS));
-  const x1 = Math.min(MW - 1, Math.ceil((camX + VW) / TS)), y1 = Math.min(MH - 1, Math.ceil((camY + VH) / TS));
-  ctx.fillStyle = 'rgba(220,240,255,.75)';
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    if (grid[idx(x, y)] !== T.WATER) continue;
-    const ph = (time * 0.8 + hash2(x, y, 99) * 4) % 4;
-    if (ph < 1) {
-      const sx = x * TS - camX + 3 + Math.floor(hash2(x, y, 98) * 7), sy = y * TS - camY + 5 + Math.floor(hash2(x, y, 97) * 7);
-      ctx.fillRect(sx + Math.floor(ph * 3), sy, 3, 1);
+/* ---------- Rendering & ambient life ---------- */
+const reducedMotion = () => state.motion === 'reduced';
+let camFX = null, camFY = null, shakeT = 0, shakeMag = 0, flashT = 0;
+function shake(mag, dur) { if (reducedMotion()) return; shakeMag = Math.max(shakeMag, mag); shakeT = Math.max(shakeT, dur); }
+function updateCamera(dt) {
+  let tx, ty;
+  if (state.mode === 'title') {
+    const t = time * .05;
+    camFX = 48 * TS + Math.cos(t) * 22 * TS; camFY = 38 * TS + Math.sin(t * 1.3) * 16 * TS;
+  } else {
+    tx = player.px + 8; ty = player.py + 4;
+    if (player.moving && !reducedMotion()) { tx += player.fx * 14; ty += player.fy * 10; }   // look ahead
+    if (camFX === null || reducedMotion()) { camFX = tx; camFY = ty; }
+    else { const k = 1 - Math.exp(-dt * 6); camFX += (tx - camFX) * k; camFY += (ty - camFY) * k; }
+  }
+  setCamera(camFX, camFY);
+  if (shakeT > 0) {
+    shakeT -= dt;
+    camX += Math.round((Math.random() * 2 - 1) * shakeMag); camY += Math.round((Math.random() * 2 - 1) * shakeMag);
+    if (shakeT <= 0) shakeMag = 0;
+  }
+}
+function viewTiles(m) {
+  return [Math.max(0, Math.floor(camX / TS) - m), Math.max(0, Math.floor(camY / TS) - m),
+          Math.min(MW - 1, Math.floor((camX + VW) / TS) + m), Math.min(MH - 1, Math.floor((camY + VH) / TS) + m)];
+}
+// A slow travelling breeze: -1..1, rolling across the map in gusts
+function windAt(x, y) { return Math.sin(time * 1.3 - x * .35 + y * .12) * (.55 + .45 * Math.sin(time * .23)); }
+const treeSway = (x, y) => reducedMotion() ? 0 : windAt(x, y) * 1.3;
+
+/* Particles: dust, smoke, leaves, sparkles, ripples */
+const parts = [];
+function spawn(p) { if (parts.length < 600) parts.push(Object.assign({ t: 0, life: 1, vx: 0, vy: 0, g: 0, layer: 'over' }, p)); }
+function updateParticles(dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.t += dt;
+    if (p.t >= p.life) { parts.splice(i, 1); continue; }
+    if (p.kind === 'leaf') {
+      if (!p.landed) {
+        p.x += (p.vx + Math.sin(p.t * 3 + p.ph) * 9) * dt; p.y += p.vy * dt;
+        if (p.y >= p.gy) { p.landed = true; p.life = Math.min(p.life, p.t + 2.5); }
+      }
+      continue;
+    }
+    p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+}
+function drawParticles(layer) {
+  for (const p of parts) {
+    if (p.layer !== layer) continue;
+    const X = Math.round(p.x - camX), Y = Math.round(p.y - camY);
+    if (X < -24 || Y < -24 || X > VW + 24 || Y > VH + 24) continue;
+    const k = p.t / p.life;
+    switch (p.kind) {
+      case 'dust': ctx.globalAlpha = .7 * (1 - k); disc(ctx, X, Y, Math.round(1 + k * 2.5), p.col || '#efe4c8'); break;
+      case 'smoke': {
+        const r = Math.round(p.r0 + (p.r1 - p.r0) * k);
+        ctx.globalAlpha = (p.a || .5) * (1 - k) * Math.min(1, k * 5);
+        disc(ctx, X, Y, r, shade(p.col || '#d2d3de', -.12)); disc(ctx, X - 1, Y - 1, Math.max(0, r - 1), p.col || '#d2d3de');
+        break;
+      }
+      case 'leaf': {
+        ctx.globalAlpha = Math.min(1, (p.life - p.t) / 1.2);
+        const flip = !p.landed && Math.sin(p.t * 8 + p.ph) > 0;
+        rect(ctx, X, Y, flip ? 1 : 2, flip ? 2 : p.landed ? 2 : 1, p.col); break;
+      }
+      case 'spark': sparkle(ctx, X, Y, k < .4 ? 2 : 1, 1 - k, p.col || '#fff3b0'); break;
+      case 'ring': ctx.globalAlpha = .7 * (1 - k); ring(ctx, X, Y, 1 + k * p.r, p.col || '#e4f4ff'); break;
+      case 'fleck': ctx.globalAlpha = 1 - k; rect(ctx, X, Y, 1, 1, p.col); break;
     }
   }
+  ctx.globalAlpha = 1;
+}
+function dustAt(x, y, n, vx = 0) {
+  for (let k = 0; k < n; k++) spawn({ kind: 'dust', layer: 'under', x: x + (Math.random() * 6 - 3), y: y + Math.random() * 2, vx: vx + (Math.random() * 10 - 5), vy: -6 - Math.random() * 6, life: .35 + Math.random() * .25 });
+}
+
+/* River geometry, for swans and ducks */
+const RIVER = (() => {
+  const p = MAP_DATA.river.points.map(([x, y]) => [x * TS, y * TS]), cum = [0];
+  for (let i = 1; i < p.length; i++) cum.push(cum[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+  return { p, cum, len: cum[cum.length - 1] };
+})();
+function riverAt(s) {
+  let i = 1; while (i < RIVER.cum.length - 1 && RIVER.cum[i] < s) i++;
+  const a = RIVER.p[i - 1], b = RIVER.p[i], L = RIVER.cum[i] - RIVER.cum[i - 1] || 1, k = (s - RIVER.cum[i - 1]) / L;
+  return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k, dx: (b[0] - a[0]) / L, dy: (b[1] - a[1]) / L };
+}
+const fowl = Array.from({ length: AMBIENT.waterfowl }, (_, i) => ({
+  s: RIVER.len * (.1 + .8 * Math.random()), v: (Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 4),
+  ph: Math.random() * 9, kind: i % 3 === 2 ? 'duck' : 'swan'
+}));
+function updateFowl(dt) {
+  for (const w of fowl) {
+    w.s += w.v * dt;
+    if (w.s < RIVER.len * .05 || w.s > RIVER.len * .95 || Math.random() < dt * .02) w.v = -w.v;
+    w.s = clamp(w.s, RIVER.len * .05, RIVER.len * .95);
+  }
+}
+function drawFowl() {
+  for (const w of fowl) {
+    const r = riverAt(w.s), off = Math.sin(time * .25 + w.ph) * 8;
+    const wx = r.x - r.dy * off, wy = r.y + r.dx * off;
+    const tx = Math.floor(wx / TS), ty = Math.floor(wy / TS);
+    if (!inb(tx, ty) || grid[idx(tx, ty)] !== T.WATER) continue;   // under a bridge, or off the map
+    const X = Math.round(wx - camX), Y = Math.round(wy - camY) + (Math.sin(time * 2 + w.ph) > .6 ? 1 : 0);
+    if (X < -10 || Y < -10 || X > VW + 10 || Y > VH + 10) continue;
+    const f = (r.dx * w.v) >= 0 ? 1 : -1;
+    const P = (dx, dy, ww, hh, c) => rect(ctx, f > 0 ? X + dx : X - dx - ww + 1, Y + dy, ww, hh, c);
+    if (Math.floor(time * 3 + w.ph) % 2) { P(-6, 2, 2, 1, 'rgba(230,245,255,.8)'); P(-6, -1, 2, 1, 'rgba(230,245,255,.6)'); }
+    if (w.kind === 'swan') {
+      P(-4, -1, 8, 4, OUT); P(-3, 0, 7, 2, '#ffffff'); P(-3, 2, 7, 1, '#d8e0ea');
+      P(2, -5, 2, 5, OUT); P(2, -5, 1, 5, '#ffffff'); P(3, -6, 2, 2, '#ffffff'); P(5, -5, 1, 1, '#f08a2a'); P(3, -6, 1, 1, OUT);
+    } else {
+      P(-3, 0, 6, 3, OUT); P(-2, 0, 5, 2, '#8a6a4a'); P(1, -2, 3, 3, '#2f6a3a'); P(4, -1, 1, 1, '#e8b030'); P(2, -2, 1, 1, OUT);
+    }
+  }
+}
+
+/* Pigeons: peck about, scatter when you come close, return later */
+const pigeons = [];
+function initPigeons() {
+  for (const [cx, cy] of AMBIENT.pigeonFlocks) {
+    let n = 0;
+    for (let k = 0; k < 60 && n < AMBIENT.pigeonsPerFlock; k++) {
+      const x = cx + Math.round((Math.random() * 2 - 1) * 2), y = cy + Math.round((Math.random() * 2 - 1) * 1.5);
+      if (!inb(x, y) || !WALKABLE[grid[idx(x, y)]] || solidProp[idx(x, y)]) continue;
+      const px = x * TS + 3 + Math.random() * 10, py = y * TS + 7 + Math.random() * 7;
+      pigeons.push({ hx: px, hy: py, x: px, y: py, st: 'ground', t: 0, face: Math.random() < .5 ? -1 : 1, ph: Math.random() * 9, vx: 0, vy: 0 });
+      n++;
+    }
+  }
+}
+let flapSoundT = 0;
+function updatePigeons(dt) {
+  flapSoundT -= dt;
+  const pcx = player.px + 8, pcy = player.py + 10, playing = state.mode !== 'title';
+  for (const p of pigeons) {
+    if (p.st === 'ground') {
+      if (Math.random() < dt * .3) { p.face = -p.face; p.x = clamp(p.x + p.face * 2, p.hx - 8, p.hx + 8); }
+      const reach = player.moving && runHeld ? 46 : 30;
+      if (playing && Math.hypot(pcx - p.x, pcy - p.y) < reach) {
+        const a = Math.atan2(p.y - pcy, p.x - pcx) + (Math.random() - .5);
+        p.st = 'fly'; p.t = 0; p.vx = Math.cos(a) * 70; p.vy = Math.min(-35, Math.sin(a) * 50 - 45); p.face = p.vx >= 0 ? 1 : -1;
+        if (flapSoundT <= 0) { sfx.flap(); flapSoundT = .5; }
+      }
+    } else if (p.st === 'fly') {
+      p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy -= 8 * dt;
+      if (p.t > 2.5) { p.st = 'gone'; p.t = 7 + Math.random() * 8; }
+    } else if (p.st === 'gone') {
+      p.t -= dt;
+      if (p.t <= 0) {
+        if (!playing || Math.hypot(pcx - p.hx, pcy - p.hy) > 80) {
+          p.st = 'land'; p.t = 0; p.sx = p.hx + (Math.random() < .5 ? -1 : 1) * 150; p.sy = p.hy - 120; p.face = p.sx < p.hx ? 1 : -1;
+        } else p.t = 2;
+      }
+    } else if (p.st === 'land') {
+      p.t += dt / 1.8;
+      const k = Math.min(1, p.t), e = 1 - (1 - k) * (1 - k);
+      p.x = p.sx + (p.hx - p.sx) * e; p.y = p.sy + (p.hy - p.sy) * e - Math.sin(k * Math.PI) * 12;
+      if (k >= 1) { p.st = 'ground'; p.x = p.hx; p.y = p.hy; }
+    }
+  }
+}
+function drawPigeons(flying) {
+  for (const p of pigeons) {
+    const air = p.st === 'fly' || p.st === 'land';
+    if (p.st === 'gone' || air !== flying) continue;
+    const X = Math.round(p.x - camX), Y = Math.round(p.y - camY), f = p.face;
+    if (X < -8 || Y < -8 || X > VW + 8 || Y > VH + 8) continue;
+    const P = (dx, dy, w, h, c) => rect(ctx, f > 0 ? X + dx : X - dx - w + 1, Y + dy, w, h, c);
+    if (!air) {
+      const peck = ((time * 1.6 + p.ph) % 3) < .3;
+      P(-2, 2, 5, 1, 'rgba(0,0,0,.2)');
+      P(-3, -1, 1, 1, '#4a4f5a'); P(-2, -2, 5, 3, '#8b909c'); P(-1, -1, 3, 1, '#a3a8b4');
+      if (peck) { P(2, 0, 2, 2, '#6c7282'); P(4, 1, 1, 1, '#e0b060'); }
+      else { P(2, -4, 2, 2, '#6c7282'); P(2, -2, 1, 1, '#5aa08a'); P(4, -3, 1, 1, '#e0b060'); P(3, -4, 1, 1, OUT); }
+      P(0, 1, 1, 1, '#d07060'); P(2, 1, 1, 1, '#d07060');
+    } else {
+      const up = Math.floor(time * 16 + p.ph) % 2;
+      P(-2, -1, 5, 2, '#8b909c'); P(3, -2, 2, 2, '#6c7282');
+      if (up) P(-1, -4, 3, 3, '#a8adb8'); else P(-1, 1, 3, 2, '#a8adb8');
+    }
+  }
+}
+
+/* Cloud shadows */
+const clouds = Array.from({ length: AMBIENT.clouds }, () => ({ x: Math.random() * MW * TS, y: Math.random() * MH * TS, w: 80 + Math.random() * 100, h: 36 + Math.random() * 30, v: 4 + Math.random() * 5 }));
+function drawClouds() {
+  if (reducedMotion()) return;
+  ctx.fillStyle = '#0d0b26';
+  for (const c of clouds) {
+    const X = c.x - camX, Y = c.y - camY;
+    if (X + c.w < 0 || X - c.w > VW || Y + c.h < 0 || Y - c.h > VH) continue;
+    ctx.globalAlpha = .06;
+    ctx.beginPath(); ctx.ellipse(X, Y, c.w * .5, c.h * .5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(X + c.w * .3, Y - c.h * .2, c.w * .35, c.h * .45, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(X - c.w * .3, Y + c.h * .1, c.w * .3, c.h * .35, 0, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* Warm light from lamps and doorways, flickering */
+let glowPoints = [];
+function initGlows() {
+  glowPoints = props.filter(p => p.type === 'lamp').map(p => ({ x: p.x * TS + 8, y: p.y * TS - 1, lamp: true, ph: Math.random() * 9 }))
+    .concat(AMBIENT.glows.map(([x, y]) => ({ x: x * TS, y: y * TS, ph: Math.random() * 9 })));
+}
+function drawGlows() {
+  ctx.globalCompositeOperation = 'lighter';
+  for (const g of glowPoints) {
+    const X = g.x - camX, Y = g.y - camY;
+    if (X < -30 || Y < -30 || X > VW + 30 || Y > VH + 30) continue;
+    const f = .78 + .14 * Math.sin(time * 8 + g.ph) + .08 * Math.sin(time * 23 + g.ph * 2);
+    const r = 15 + f * 3;
+    const grd = ctx.createRadialGradient(X, Y, 0, X, Y, r);
+    grd.addColorStop(0, `rgba(255,196,110,${.3 * f})`); grd.addColorStop(1, 'rgba(255,170,80,0)');
+    ctx.fillStyle = grd; ctx.fillRect(X - r, Y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const g of glowPoints) if (g.lamp) {
+    const X = Math.round(g.x - camX), Y = Math.round(g.y - camY);
+    rect(ctx, X - 1, Y - 1, 2, 2, Math.sin(time * 11 + g.ph) > .3 ? '#fff6d0' : '#ffd070');
+  }
+}
+
+/* Live terrain: water glints and lapping banks, swaying grass tufts */
+function drawTuft(bx, by, o, D, L) {
+  rect(ctx, bx, by - 1, 1, 2, D); rect(ctx, bx + Math.round(o * .5), by - 2, 1, 1, D); rect(ctx, bx + o, by - 3, 1, 1, L);
+  rect(ctx, bx + 2, by - 1, 1, 2, D); rect(ctx, bx + 2 + Math.round(o * .5), by - 3, 1, 2, L); rect(ctx, bx + 2 + o, by - 4, 1, 1, L);
+  rect(ctx, bx + 4, by - 1, 1, 2, D); rect(ctx, bx + 4 + o, by - 2, 1, 1, L);
+}
+function drawTerrainAnim() {
+  const [x0, y0, x1, y1] = viewTiles(0);
+  const pcx = player.px + 8, pcy = player.py + 12, showP = state.mode !== 'title';
+  const land = c => c !== T.WATER && c !== T.BRIDGE;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const t = grid[idx(x, y)], X = x * TS - camX, Y = y * TS - camY;
+    if (t === T.WATER) {
+      for (let k = 0; k < 2; k++) {
+        const h = hash2(x, y, 90 + k), ph = (time * (.3 + h * .3) + h * 7) % 1, a = Math.sin(ph * Math.PI);
+        if (a < .3) continue;
+        ctx.globalAlpha = a * .85;
+        rect(ctx, X + 1 + Math.floor((h * 13 + ph * 6) % 12), Y + 2 + Math.floor(hash2(x, y, 80 + k) * 12), 2 + Math.round(a * 2), 1, '#e4f4ff');
+      }
+      ctx.globalAlpha = 1;
+      const lap = Math.sin(time * 2.2 + x * .7 + y * .5) > .2 ? 1 : 0;
+      if (y > 0 && land(grid[idx(x, y - 1)])) rect(ctx, X, Y + 3 + lap, TS, 1, 'rgba(235,248,255,.65)');
+      if (x > 0 && land(grid[idx(x - 1, y)])) rect(ctx, X + 3 + lap, Y, 1, TS, 'rgba(235,248,255,.55)');
+      if (x < MW - 1 && land(grid[idx(x + 1, y)])) rect(ctx, X + 12 - lap, Y, 1, TS, 'rgba(235,248,255,.55)');
+    } else if ((t === T.GRASS || t === T.FLOWER) && hash2(x, y, 31) < .22) {
+      const bx = X + 3 + Math.floor(hash2(x, y, 32) * 8), by = Y + 7 + Math.floor(hash2(x, y, 33) * 8);
+      let s = reducedMotion() ? 0 : windAt(x, y) * 1.3;
+      if (showP) {
+        const dx = (x * TS + 8) - pcx, dy = (y * TS + 10) - pcy, d = Math.abs(dx) + Math.abs(dy);
+        if (d < 20) s += (dx >= 0 ? 2.4 : -2.4) * (1 - d / 20);
+      }
+      drawTuft(bx, by, clamp(Math.round(s), -2, 2), '#4e9a3a', t === T.FLOWER ? '#f0c040' : '#93dc6c');
+    }
+  }
+}
+
+/* Ambient update: weather, smoke, leaves, ripples, birds */
+let rippleT = 0, fallingBarriers = [];
+function updateAmbient(dt) {
+  updateParticles(dt);
+  updateFowl(dt);
+  updatePigeons(dt);
+  for (const c of clouds) { c.x += c.v * dt; if (c.x - c.w > MW * TS) { c.x = -c.w; c.y = Math.random() * MH * TS; } }
+  for (const b of fallingBarriers) b.t += dt;
+  fallingBarriers = fallingBarriers.filter(b => b.t < .8);
+  const mx = camX - 40, my = camY - 60, Mx = camX + VW + 40, My = camY + VH + 40;
+  const wind = windAt(camX / TS, camY / TS);
+  for (const c of chimneys) {
+    if (c.x < mx || c.x > Mx || c.y < my || c.y > My) continue;
+    c.t -= dt;
+    if (c.t <= 0) {
+      c.t = (c.big ? .6 : 1.4) + Math.random() * 1.8;
+      spawn({ kind: 'smoke', x: c.x + Math.random() * 2, y: c.y, vx: 3 + wind * 3 + Math.random() * 2, vy: -8 - Math.random() * 4,
+              life: 4 + Math.random() * 1.5, r0: c.big ? 2 : 1.5, r1: c.big ? 9 : 7, a: .8, col: c.big ? '#b9bac6' : '#d2d3de' });
+    }
+  }
+  const [x0, y0, x1, y1] = viewTiles(1);
+  for (const i of treeTiles) {
+    const x = i % MW, y = (i / MW) | 0;
+    if (x < x0 || x > x1 || y < y0 || y > y1 || Math.random() > dt * .05) continue;
+    spawn({ kind: 'leaf', x: x * TS + 3 + Math.random() * 10, y: y * TS + Math.random() * 6, vx: 2 + wind * 5, vy: 7 + Math.random() * 5,
+            gy: y * TS + 15 + Math.random() * 10, life: 9, ph: Math.random() * 6, col: ['#d9822b', '#e8b33a', '#b5562a', '#9a7a2a', '#c86a2a'][Math.floor(Math.random() * 5)] });
+  }
+  if ((rippleT -= dt) <= 0) {
+    rippleT = .35 + Math.random() * .5;
+    for (let k = 0; k < 8; k++) {
+      const x = x0 + Math.floor(Math.random() * (x1 - x0 + 1)), y = y0 + Math.floor(Math.random() * (y1 - y0 + 1));
+      if (grid[idx(x, y)] === T.WATER && D4.every(([dx, dy]) => inb(x + dx, y + dy) && grid[idx(x + dx, y + dy)] === T.WATER)) {
+        spawn({ kind: 'ring', layer: 'under', x: x * TS + 4 + Math.random() * 8, y: y * TS + 4 + Math.random() * 8, r: 5, life: 1.4 }); break;
+      }
+    }
+  }
+  if (state.mode !== 'title') for (const r of RELICS) {
+    if (state.found.includes(r.id) || Math.random() > dt * 2.5) continue;
+    if (Math.hypot(player.px / TS - r.x, player.py / TS - r.y) > 3.5) continue;
+    spawn({ kind: 'spark', x: r.x * TS + 3 + Math.random() * 10, y: r.y * TS + 8 + Math.random() * 4, vy: -14, life: .9, col: '#ffe9a0' });
+  }
+}
+
+function drawBarrier(X, Y, x, alpha, drop) {
+  ctx.globalAlpha = alpha; Y += drop;
+  rect(ctx, X + 2, Y + 9, 2, 7, '#5a3a1e'); rect(ctx, X + 12, Y + 9, 2, 7, '#5a3a1e');
+  rect(ctx, X, Y + 5, 16, 5, OUT);
+  for (let k = 0; k < 4; k++) rect(ctx, X + 1 + k * 4, Y + 6, 2, 3, '#c4472f'), rect(ctx, X + 3 + k * 4, Y + 6, 2, 3, '#fbf7ea');
+  if ((time * 2 + x) % 2 < 1 && !drop) rect(ctx, X + 7, Y + 2, 2, 2, '#ffb030');
+  ctx.globalAlpha = 1;
 }
 function drawBarriers() {
   for (const [x, y] of barrierTiles) {
     const X = x * TS - camX, Y = y * TS - camY;
     if (X < -16 || Y < -16 || X > VW || Y > VH) continue;
-    rect(ctx, X + 2, Y + 9, 2, 7, '#5a3a1e'); rect(ctx, X + 12, Y + 9, 2, 7, '#5a3a1e');
-    rect(ctx, X, Y + 5, 16, 5, OUT);
-    for (let k = 0; k < 4; k++) rect(ctx, X + 1 + k * 4, Y + 6, 2, 3, '#c4472f'), rect(ctx, X + 3 + k * 4, Y + 6, 2, 3, '#fbf7ea');
-    if ((time * 2 + x) % 2 < 1) rect(ctx, X + 7, Y + 2, 2, 2, '#ffb030');
+    drawBarrier(X, Y, x, 1, 0);
   }
+  for (const b of fallingBarriers) { const k = b.t / .8; drawBarrier(b.x * TS - camX, b.y * TS - camY, b.x, 1 - k, Math.round(k * k * 10)); }
 }
 function sparkle(g, x, y, s, a, col) {
   g.globalAlpha = a; g.fillStyle = col;
@@ -1584,8 +1987,9 @@ function drawRelics() {
     const X = r.x * TS - camX + 8, Y = r.y * TS - camY + 8;
     const a = clamp(1 - d / CONFIG.sparkleRange, 0, 1) * .9 + .1;
     if (d < 2.5) {
+      const bob = Math.round(Math.sin(time * 3) * 1.5);
       ctx.globalAlpha = .35 + .2 * Math.sin(time * 4); disc(ctx, X, Y + 2, 5, '#ffe9a0'); ctx.globalAlpha = 1;
-      rect(ctx, X - 2, Y, 5, 5, OUT); rect(ctx, X - 1, Y + 1, 3, 3, '#ffd34a');
+      rect(ctx, X - 2, Y + bob, 5, 5, OUT); rect(ctx, X - 1, Y + 1 + bob, 3, 3, '#ffd34a'); rect(ctx, X - 1, Y + 1 + bob, 1, 1, '#fff');
     }
     for (let k = 0; k < 3; k++) {
       const ph = (time * 1.3 + k / 3) % 1;
@@ -1595,41 +1999,87 @@ function drawRelics() {
     }
   }
 }
-function drawEntities() {
-  const list = npcs.map(n => ({ y: n.y * TS, draw: () => {
-    const X = n.x * TS - camX, Y = n.y * TS - camY;
-    drawPerson(ctx, X, Y, n.dir, 0, n.look);
-    if (!state.met[n.id] && tileRevealed(n.x, n.y)) {
-      const by = Y - 18 + Math.round(Math.sin(time * 3) * 1.5);
-      rect(ctx, X + 4, by, 9, 7, OUT); rect(ctx, X + 5, by + 1, 7, 5, '#fff'); rect(ctx, X + 6, by + 7, 2, 2, OUT);
-      rect(ctx, X + 6, by + 3, 1, 1, OUT); rect(ctx, X + 8, by + 3, 1, 1, OUT); rect(ctx, X + 10, by + 3, 1, 1, OUT);
+
+/* Characters, trees and the player, sorted by depth */
+const walkFrame = e => e.moving ? (e.t < .5 ? (e.step % 2 ? 1 : 2) : 0) : 0;
+const walkBob = (e, ph) => e.moving ? (e.t > .1 && e.t < .6 ? -1 : 0) : (((time * .75 + ph) % 2) < .25 ? -1 : 0);
+const blinkAt = ph => ((time + ph * 3.7) % 4.3) < .13;
+function drawEntities(treesOnly) {
+  const list = [];
+  const [x0, y0, x1, y1] = viewTiles(1);
+  for (const i of treeTiles) {
+    const x = i % MW, y = (i / MW) | 0;
+    if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+    list.push({ y: y * TS, draw: () => drawTreeCanopy(ctx, x * TS - camX, y * TS - camY, treeSway(x, y)) });
+  }
+  if (!treesOnly) {
+    for (const n of chars) {
+      if (n.px < camX - 20 || n.px > camX + VW + 20 || n.py < camY - 30 || n.py > camY + VH + 20) continue;
+      list.push({ y: n.py, draw: () => {
+        const X = Math.round(n.px - camX), Y = Math.round(n.py - camY);
+        drawPerson(ctx, X, Y, n.dir, walkFrame(n), n.look, { bob: walkBob(n, n.ph), blink: blinkAt(n.ph) });
+        if (!n.folk && !state.met[n.id] && tileRevealed(n.x, n.y)) {
+          const by = Y - 19 + Math.round(Math.sin(time * 3 + n.ph) * 1.5);
+          rect(ctx, X + 4, by, 9, 7, OUT); rect(ctx, X + 5, by + 1, 7, 5, '#fff'); rect(ctx, X + 6, by + 7, 2, 2, OUT);
+          const dot = Math.floor(time * 3) % 4;
+          for (let k = 0; k < 3; k++) if (k < dot) rect(ctx, X + 6 + k * 2, by + 3, 1, 1, OUT);
+        }
+      } });
     }
-  } }));
-  list.push({ y: player.py, draw: () => {
-    const fr = player.moving ? (player.t < .5 ? (player.step % 2 ? 1 : 2) : 0) : 0;
-    drawPerson(ctx, player.px - camX, player.py - camY, player.dir, fr, PLAYER_LOOK);
-  } });
+    list.push({ y: player.py + .5, draw: () => {
+      let ox = player.px, oy = player.py, bob = walkBob(player, .4);
+      if (player.bumpT > 0) { const [dx, dy] = DIRS[player.dir], k = Math.sin((1 - player.bumpT / .16) * Math.PI); ox += dx * k * 2; oy += dy * k * 2; }
+      if (collectAnim) bob = collectAnim.t < .22 ? -3 : collectAnim.t < .3 ? -1 : 0;
+      drawPerson(ctx, ox - camX, oy - camY, player.dir, walkFrame(player), PLAYER_LOOK, { bob, blink: !collectAnim && blinkAt(.9) });
+    } });
+  }
   list.sort((a, b) => a.y - b.y).forEach(e => e.draw());
 }
+
+/* The "witness logged" moment: the relic rises over the surveyor's head */
+let collectAnim = null;
+function drawCollect() {
+  if (!collectAnim) return;
+  const t = collectAnim.t, rise = Math.min(1, t / .35);
+  const cx = Math.round(player.px + 8 - camX), cy = Math.round(player.py - 12 - rise * 8 - camY);
+  ctx.save();
+  ctx.globalAlpha = .5 * Math.min(1, t * 3); ctx.translate(cx, cy); ctx.rotate(t * 1.4);
+  ctx.fillStyle = '#fff3b0';
+  for (let k = 0; k < 8; k++) { ctx.rotate(Math.PI / 4); ctx.fillRect(-1, 8, 2, 8 + Math.sin(t * 7 + k) * 3); }
+  ctx.restore();
+  ctx.globalAlpha = .45; disc(ctx, cx, cy, 11, '#fff6c8'); ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(relicCanvas[collectAnim.r.id], cx - 10, cy - 10, 20, 20); ctx.imageSmoothingEnabled = false;
+}
+
 function drawFog() {
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(fogCanvas, -camX, -camY, FW * 8, FH * 8);
+  if (!reducedMotion()) {   // a second, drifting pass makes the fog's edge breathe
+    ctx.globalAlpha = .4;
+    ctx.drawImage(fogCanvas, -camX + Math.sin(time * .5) * 4, -camY + Math.cos(time * .4) * 4, FW * 8, FH * 8);
+    ctx.globalAlpha = 1;
+  }
   ctx.imageSmoothingEnabled = false;
 }
-function render() {
+function render(dt) {
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#17152e'; ctx.fillRect(0, 0, VW, VH);
-  if (state.mode === 'title') {
-    const t = time * .05;
-    setCamera(48 * TS + Math.cos(t) * 22 * TS, 38 * TS + Math.sin(t * 1.3) * 16 * TS);
-  } else setCamera(player.px + 8, player.py + 4);
+  updateCamera(dt);
+  const title = state.mode === 'title';
   ctx.drawImage(mapCanvas, -camX, -camY);
-  drawWaterShimmer();
-  if (state.mode === 'title') return;
-  drawBarriers();
-  drawRelics();
-  drawEntities();
-  drawFog();
+  drawTerrainAnim();
+  drawParticles('under');
+  drawFowl();
+  if (!title) { drawBarriers(); drawRelics(); }
+  drawPigeons(false);
+  drawEntities(title);
+  drawPigeons(true);
+  drawParticles('over');
+  drawCollect();
+  drawGlows();
+  drawClouds();
+  if (!title) drawFog();
+  if (flashT > 0) { ctx.globalAlpha = Math.min(1, flashT * 3); ctx.fillStyle = '#fffbe8'; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
 }
 
 /* ---------- Input ---------- */
@@ -1711,7 +2161,8 @@ const sfx = {
   select: () => { tone(660, .05, 'square', .03); tone(990, .06, 'square', .03, .05); },
   bump: () => tone(110, .07, 'triangle', .06),
   relic: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', .06, i * .08)),
-  unlock: () => [392, 523, 659, 784].forEach((f, i) => tone(f, .35, 'square', .03, i * .12))
+  unlock: () => [392, 523, 659, 784].forEach((f, i) => tone(f, .35, 'square', .03, i * .12)),
+  flap: () => { for (let k = 0; k < 4; k++) tone(180 + Math.random() * 120, .03, 'triangle', .025, k * .05); }
 };
 
 /* ---------- Dialogue ---------- */
@@ -1766,9 +2217,9 @@ function pressA() {
   if (relicAt.has(i) && !state.found.includes(relicAt.get(i).id) && zoneOpen(zoneAt(fx, fy))) collectRelic(relicAt.get(i));
 }
 function talkTo(n) {
-  const opp = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  n.dir = opp[player.dir]; n.turnT = 6;
+  n.dir = BACK[player.dir]; n.turnT = 6; n.talkT = 5;
   sfx.select();
+  if (n.folk) return say([{ who: 'Passer-by', text: AMBIENT.folkLines[n.line++ % AMBIENT.folkLines.length] }]);
   const who = `${n.name} · ${n.role}`;
   const lines = [];
   if (!state.met[n.id]) { n.intro.forEach(t => lines.push({ who, text: t })); state.met[n.id] = true; save(); }
@@ -1791,17 +2242,40 @@ function otherHint(n) {
 function collectRelic(r) {
   state.found.push(r.id);
   sfx.relic();
-  held.length = 0;
+  held.length = 0; touchDir = null; tapDir = null;
   save();
   updateHud();
-  openModal(relicView(r.id, 'summary', true));
+  state.mode = 'collect'; player.dir = 'down';
+  $('prompt').classList.add('hidden');
+  collectAnim = { r, t: 0 };
+  flashT = reducedMotion() ? 0 : .2; shake(1.5, .25);
+  const cx = player.px + 8, cy = player.py - 4;
+  for (let k = 0; k < 28; k++) {
+    const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
+    spawn({ kind: 'spark', x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, g: 60, life: .6 + Math.random() * .6, col: k % 3 ? '#ffe27a' : '#ffffff' });
+  }
+  spawn({ kind: 'ring', x: cx, y: cy, r: 18, life: .6, col: '#fff3b0' });
+}
+function updateCollect(dt) {
+  if (!collectAnim) return;
+  collectAnim.t += dt;
+  if (Math.random() < dt * 12) spawn({ kind: 'spark', x: player.px + 2 + Math.random() * 12, y: player.py - 22 + Math.random() * 10, vy: -10, life: .7, col: '#fff6c0' });
+  if (collectAnim.t > 1.25) {
+    const r = collectAnim.r; collectAnim = null;
+    state.mode = 'play';
+    openModal(relicView(r.id, 'summary', true));
+  }
 }
 function afterInteraction() {
   // Zone unlocks
   for (const z of ZONES) {
     if (!state.unlockedZones.has(z.id) && zoneOpen(z)) {
       state.unlockedZones.add(z.id);
+      const old = barrierTiles;
       computeBarriers();
+      fallingBarriers = old.filter(([x, y]) => !barrierTiles.some(b => b[0] === x && b[1] === y)).map(([x, y]) => ({ x, y, t: 0 }));
+      for (const b of fallingBarriers) dustAt(b.x * TS + 8, b.y * TS + 14, 4);
+      shake(1, .3);
       sfx.unlock();
       save();
       return say([{ who: "Thorne's Survey", text: z.unlockText }]);
@@ -1824,32 +2298,43 @@ function checkCompletion() {
 let lastBump = 0, lastArea = '', areaTimer = 0, toastTimer = 0;
 function updatePlayer(dt) {
   const speed = runHeld ? CONFIG.runSpeed : CONFIG.walkSpeed;
+  if (player.bumpT > 0) player.bumpT -= dt;
+  if (player.turnT > 0) player.turnT -= dt;
   if (player.moving) {
     player.t += dt * speed;
     if (player.t >= 1) {
       player.tx += player.fx; player.ty += player.fy;
-      player.moving = false; player.t = 0; player.step++;
+      player.moving = false; player.t = 0; player.step++; player.idleT = 0;
       onArrive();
     }
-  }
+  } else player.idleT += dt;
   if (!player.moving && state.mode === 'play') {
-    const d = currentDir() || tapDir;
+    const held1 = currentDir(), d = held1 || tapDir;
     tapDir = null;
     if (d) {
-      player.dir = d;
-      const [dx, dy] = DIRS[d], nx = player.tx + dx, ny = player.ty + dy;
-      const why = blockedReason(nx, ny);
-      if (!why) { player.moving = true; player.fx = dx; player.fy = dy; player.t = 0; }
-      else if (time - lastBump > .35) {
-        lastBump = time; sfx.bump();
-        if (why === 'zone') { const z = zoneAt(nx, ny); showToast(STORY.cordon(z, state.found.length)); }
+      if (d !== player.dir && player.idleT > .1) {
+        // Standing still: turn on the spot first, so a quick tap just changes facing
+        player.dir = d; player.turnT = held1 ? .085 : 0; player.idleT = 0;
+      } else if (player.turnT <= 0) {
+        player.dir = d;
+        const [dx, dy] = DIRS[d], nx = player.tx + dx, ny = player.ty + dy;
+        const why = blockedReason(nx, ny);
+        if (!why) {
+          player.moving = true; player.fx = dx; player.fy = dy; player.t = 0;
+          if (runHeld) dustAt(player.px + 8 - dx * 4, player.py + 15, 2, -dx * 12);
+          else if (grid[idx(player.tx, player.ty)] === T.GRASS && Math.random() < .35)
+            spawn({ kind: 'fleck', layer: 'under', x: player.px + 6 + Math.random() * 4, y: player.py + 14, vx: Math.random() * 16 - 8, vy: -18, g: 60, life: .35, col: '#5fae44' });
+        } else if (time - lastBump > .35) {
+          lastBump = time; sfx.bump(); player.bumpT = .16;
+          dustAt(player.px + 8 + dx * 6, player.py + 14 + dy * 3, 2);
+          if (why === 'zone') { const z = zoneAt(nx, ny); showToast(STORY.cordon(z, state.found.length)); }
+        }
       }
     }
   }
   const t = player.moving ? player.t : 0;
   player.px = (player.tx + player.fx * t) * TS;
   player.py = (player.ty + player.fy * t) * TS;
-  if (!player.moving) { player.px = player.tx * TS; player.py = player.ty * TS; }
   if (Math.abs(player.px - lastRevealX) + Math.abs(player.py - lastRevealY) >= 4) {
     revealAt(player.px + 8, player.py + 8); lastRevealX = player.px; lastRevealY = player.py;
   }
@@ -1863,22 +2348,85 @@ function onArrive() {
   if (relicAt.has(i) && !state.found.includes(relicAt.get(i).id)) return collectRelic(relicAt.get(i));
   if (state.found.length >= RELICS.length && !state.flags.finaleShown && explorePct() >= CONFIG.finaleExplorePct) checkCompletion();
 }
-function updateNPCs(dt) {
-  for (const n of npcs) {
-    n.turnT -= dt;
-    if (n.turnT <= 0) {
-      n.turnT = 2.5 + Math.random() * 4;
-      n.dir = Math.random() < .5 ? n.baseDir : ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
+const BACK = { up: 'down', down: 'up', left: 'right', right: 'left' };
+function faceToward(e, tx, ty) { const dx = tx - e.x, dy = ty - e.y; return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
+const STREET = new Set([T.ROAD, T.PAVE, T.DIRT, T.BRIDGE]);
+function canCharEnter(e, nx, ny) {
+  if (!inb(nx, ny)) return false;
+  const i = idx(nx, ny);
+  if (!WALKABLE[grid[i]] || solidProp[i] || npcAt.has(i) || relicAt.has(i) || barrierSet.has(i) || zoneGrid[i] !== e.zone) return false;
+  if (nx === player.tx && ny === player.ty) return false;
+  if (player.moving && nx === player.tx + player.fx && ny === player.ty + player.fy) return false;
+  return e.folk ? STREET.has(grid[i]) : Math.abs(nx - e.hx) + Math.abs(ny - e.hy) <= 1;
+}
+function charMove(e, d) {
+  const [dx, dy] = DIRS[d], nx = e.x + dx, ny = e.y + dy;
+  e.dir = d;
+  if (!canCharEnter(e, nx, ny)) return false;
+  npcAt.delete(idx(e.x, e.y)); npcAt.set(idx(nx, ny), e);
+  e.moving = true; e.fx = dx; e.fy = dy; e.t = 0;
+  return true;
+}
+function updateChars(dt) {
+  for (const e of chars) {
+    if (e.moving) {
+      e.t += dt * e.speed;
+      if (e.t >= 1) { e.x += e.fx; e.y += e.fy; e.moving = false; e.t = 0; e.step++; }
+    }
+    const t = e.moving ? e.t : 0;
+    e.px = (e.x + e.fx * t) * TS; e.py = (e.y + e.fy * t) * TS;
+    if (e.moving) continue;
+    if (e.talkT > 0) { e.talkT -= dt; continue; }
+    const near = Math.abs(e.x - player.tx) + Math.abs(e.y - player.ty);
+    if (e.folk) {
+      if (near <= 1) {   // wait politely, then step aside so nobody blocks a narrow lane
+        if ((e.waitT = (e.waitT || 0) + dt) < 1.6) { if (Math.random() < dt * 2) e.dir = faceToward(e, player.tx, player.ty); continue; }
+        e.waitT = 0;
+        const away = Object.keys(DIRS).filter(d => canCharEnter(e, e.x + DIRS[d][0], e.y + DIRS[d][1]))
+          .sort((a, b) => (Math.abs(e.x + DIRS[b][0] - player.tx) + Math.abs(e.y + DIRS[b][1] - player.ty)) - (Math.abs(e.x + DIRS[a][0] - player.tx) + Math.abs(e.y + DIRS[a][1] - player.ty)));
+        if (away.length) charMove(e, away[0]);
+        continue;
+      }
+      e.waitT = 0;
+      if ((e.pauseT -= dt) > 0) continue;
+      if (Math.random() < .12) { e.pauseT = .8 + Math.random() * 2.5; e.dir = Object.keys(DIRS)[Math.floor(Math.random() * 4)]; continue; }
+      const opts = Object.keys(DIRS).filter(d => canCharEnter(e, e.x + DIRS[d][0], e.y + DIRS[d][1]));
+      if (!opts.length) { e.pauseT = 1; continue; }
+      const fwd = opts.filter(d => d !== BACK[e.dir]);
+      const pool = fwd.length ? fwd : opts;
+      const d = opts.includes(e.dir) && Math.random() < .75 ? e.dir : pool[Math.floor(Math.random() * pool.length)];
+      charMove(e, d);
+    } else {
+      e.turnT -= dt;
+      if (near <= 3 && state.mode === 'play') {   // notice the surveyor and keep an eye on them
+        if (e.turnT <= 0) { e.dir = faceToward(e, player.tx, player.ty); e.turnT = 1.2 + Math.random() * 2; }
+        continue;
+      }
+      if ((e.paceT -= dt) <= 0) {
+        e.paceT = 5 + Math.random() * 7;
+        if (e.x !== e.hx || e.y !== e.hy) { if (!charMove(e, faceToward(e, e.hx, e.hy))) e.paceT = 1; }
+        else {
+          const opts = Object.keys(DIRS).filter(d => canCharEnter(e, e.x + DIRS[d][0], e.y + DIRS[d][1]));
+          if (opts.length && Math.random() < .7) charMove(e, opts[Math.floor(Math.random() * opts.length)]);
+        }
+        continue;
+      }
+      if (e.turnT <= 0) { e.turnT = 2.5 + Math.random() * 4; e.dir = Math.random() < .5 ? e.baseDir : Object.keys(DIRS)[Math.floor(Math.random() * 4)]; }
     }
   }
 }
 
 /* ---------- HUD ---------- */
-let lastPctShown = -1;
+let lastPctShown = -1, lastFoundShown = -1;
 function updateHud() {
   const p = explorePct(), pi = Math.floor(p);
   if (pi !== lastPctShown) { $('pct').textContent = pi + '%'; $('pctBar').style.width = p.toFixed(1) + '%'; lastPctShown = pi; }
-  $('relicCount').textContent = `${state.found.length}/${RELICS.length}`;
+  if (state.found.length !== lastFoundShown) {
+    const el = $('relicCount');
+    el.textContent = `${state.found.length}/${RELICS.length}`;
+    if (lastFoundShown >= 0) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    lastFoundShown = state.found.length;
+  }
 }
 function showArea(name) {
   const el = $('areaBanner'); el.textContent = name; el.classList.add('show'); areaTimer = 2.6;
@@ -1891,7 +2439,7 @@ function updatePrompt() {
   let txt = null;
   if (inb(fx, fy)) {
     const i = idx(fx, fy);
-    if (npcAt.has(i)) txt = 'Talk to ' + npcAt.get(i).name;
+    if (npcAt.has(i)) txt = npcAt.get(i).folk ? 'Chat to a passer-by' : 'Talk to ' + npcAt.get(i).name;
     else if (signAt.has(i)) txt = 'Read: ' + signAt.get(i).title;
   }
   if (txt) { $('promptText').textContent = txt; el.classList.remove('hidden'); } else el.classList.add('hidden');
@@ -1925,6 +2473,7 @@ function renderModal() {
   box.classList.toggle('wide', !!v.wide);
   box.innerHTML = v.html();
   box.scrollTop = 0;
+  box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
   if (v.after) v.after(box);
   const first = box.querySelector('[data-focus]') || box.querySelector('button');
   if (first && !document.body.classList.contains('touch')) first.focus({ preventScroll: true });
@@ -2014,7 +2563,7 @@ const mapView = {
   },
   after(box) {
     const c = box.querySelector('#thorneMap'), g = c.getContext('2d'), sc = 8;
-    g.imageSmoothingEnabled = false; g.drawImage(mapCanvas, 0, 0, MW * TS, MH * TS, 0, 0, MW * sc, MH * sc);
+    g.imageSmoothingEnabled = false; g.drawImage(overviewCanvas, 0, 0);
     g.imageSmoothingEnabled = true; g.drawImage(fogCanvas, 0, 0, MW * sc, MH * sc); g.imageSmoothingEnabled = false;
     g.font = 'bold 15px Georgia, serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#fffbef'; g.fillStyle = '#232244';
     for (const a of MAP_DATA.areas) {
@@ -2041,6 +2590,7 @@ function menuView() {
         ${complete ? `<button class="btn" data-act="finale">${STORY.finaleTitle}</button>` : ''}
         <button class="btn" data-act="route" ${complete ? '' : 'disabled'}>Walking Route <span>${complete ? 'real-world' : 'after the survey'}</span></button>
         <button class="btn" data-act="sound">Sound: ${state.sound ? 'On' : 'Off'}</button>
+        <button class="btn" data-act="motion">Motion: ${state.motion === 'reduced' ? 'Reduced' : 'Full'} <span>camera, shake, effects</span></button>
         <button class="btn" data-act="help">How to Play</button>
         <button class="btn" data-act="title">Return to Title</button>
         <button class="btn" data-act="reset">Start a New Survey&hellip;</button>
@@ -2054,12 +2604,14 @@ function menuView() {
       if (act === 'finale') openModal(finaleView);
       if (act === 'route') openModal(routeView);
       if (act === 'help') openModal(helpView);
+      if (act === 'motion') { state.motion = state.motion === 'reduced' ? 'full' : 'reduced'; applyMotion(); save(); renderModal(); }
       if (act === 'sound') { state.sound = !state.sound; if (state.sound) ensureAudio(); save(); renderModal(); }
       if (act === 'title') { save(); closeAllModals('title'); showTitle(); }
       if (act === 'reset') openModal(confirmResetView);
     }
   };
 }
+function applyMotion() { document.body.classList.toggle('reduced', state.motion === 'reduced'); }
 function openMenu() { sfx.select(); openModal(menuView()); }
 const confirmResetView = {
   html: () => `<h2>Start again?</h2><p>This clears the map, your logged witnesses and everyone's memory of you. It cannot be undone.</p>
@@ -2116,7 +2668,7 @@ function save() {
   try {
     localStorage.setItem(CONFIG.saveKey, JSON.stringify({
       v: 1, x: player.tx, y: player.ty, dir: player.dir, found: state.found, met: state.met,
-      flags: state.flags, sound: state.sound, fog: b64(fog), at: Date.now()
+      flags: state.flags, sound: state.sound, motion: state.motion, fog: b64(fog), at: Date.now()
     }));
     fogDirty = false;
   } catch (e) { /* storage full or unavailable: play on */ }
@@ -2127,6 +2679,7 @@ function loadSave() {
 function applySave(d) {
   state.found = (d.found || []).filter(id => relicById[id]);
   state.met = d.met || {}; state.flags = d.flags || {}; state.sound = d.sound !== false;
+  if (d.motion) { state.motion = d.motion; applyMotion(); }
   fog.fill(0);
   if (d.fog) try { unb64(d.fog, fog); } catch (e) { fog.fill(0); }
   refreshFogAll();
@@ -2138,6 +2691,7 @@ function applySave(d) {
 function placePlayer(x, y, dir) {
   player.tx = x; player.ty = y; player.dir = dir; player.moving = false; player.t = 0; player.fx = player.fy = 0;
   player.px = x * TS; player.py = y * TS; lastRevealX = -999;
+  player.idleT = 1; player.turnT = 0; player.bumpT = 0; camFX = null;
 }
 
 /* ---------- Title, new game, continue ---------- */
@@ -2152,7 +2706,9 @@ function showTitle() {
 }
 function startPlay() {
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
-  state.mode = 'play'; lastPctShown = -1; lastArea = '';
+  state.mode = 'play'; lastPctShown = -1; lastFoundShown = -1; lastArea = ''; camFX = null;
+  const fade = $('fade'); fade.classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove('on')));
   updatePlayer(0); updateHud();
 }
 function newGame() {
@@ -2207,8 +2763,12 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 let last = performance.now(), saveTimer = 0;
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now; time += dt;
-  if (state.mode === 'play') { updatePlayer(dt); updateNPCs(dt); updatePrompt(); }
+  if (state.mode === 'play') { updatePlayer(dt); updatePrompt(); }
   else if (state.mode === 'dialogue') updateDialogue(dt);
+  else if (state.mode === 'collect') updateCollect(dt);
+  if (state.mode !== 'title' && state.mode !== 'modal') updateChars(dt);
+  updateAmbient(dt);
+  if (flashT > 0) flashT -= dt;
   if (state.mode !== 'title') {
     updateHud();
     mmTimer -= dt; if (mmTimer <= 0) { drawMinimap(); mmTimer = .2; }
@@ -2216,7 +2776,7 @@ function frame(now) {
     if (toastTimer > 0 && (toastTimer -= dt) <= 0) $('toast').classList.remove('show');
     saveTimer += dt; if (saveTimer > 5) { saveTimer = 0; if (fogDirty) save(); }
   }
-  render();
+  render(dt);
   requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && state.mode !== 'title') save(); });
@@ -2228,6 +2788,10 @@ buildMap();
 renderMap();
 renderRelicArt();
 initFog();
+initFolk();
+initPigeons();
+initGlows();
+applyMotion();
 resize();
 setupTouch();
 showTitle();

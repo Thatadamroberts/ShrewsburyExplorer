@@ -8,6 +8,7 @@ All of the game is in **`index.html`**: Canvas API, vanilla JavaScript, and ever
 
 - **Desktop:** open `index.html` in a browser. Arrow keys or WASD to walk, Space/Enter/Z to talk and read, hold Shift/X to hurry, Esc for the menu, J for the journal, T for the timeline, M for the map.
 - **Phone:** there's an on-screen D-pad with A and B buttons.
+- **Day and night:** a day lasts 12 real minutes. Windows and lamps light up after dusk, and most passers-by go home late. The menu's *Time of day* setting switches between the cycle, *Always day*, and your device's own clock.
 - **Motion:** the menu has a *Motion* setting (Full / Reduced) that turns off camera easing, screen shake, flashes and UI animation. It starts as Reduced if your device asks for reduced motion.
 
 ### Install as an app (works offline)
@@ -31,7 +32,7 @@ After the first visit the service worker caches the game, so it runs with no con
 
 All content is in labelled objects at the top of the `<script>` in `index.html`:
 
-1. `CONFIG`: fog radius, walking speed, how much exploration the finale needs
+1. `CONFIG`: fog radius, walking speed, how much exploration the finale needs, the length of a day and the starting hour
 2. `MAP_DATA`: river course, streets, landmarks, terraces, trees, place-name areas (tile coordinates on a 100 × 80 grid)
 3. `ZONES`: districts and how many relics unlock each one
 4. `RELICS`: the ten witnesses, each with a summary, a longer "read more" entry, a surprising detail, any legend or disputed claim (always shown apart from established fact), where to visit, and the clue

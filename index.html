@@ -45,6 +45,7 @@ button{font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appeara
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none}
 #stats{position:absolute;top:calc(8px + var(--st));left:calc(8px + var(--sl));padding:8px 12px 9px;font-size:13px;font-weight:700;pointer-events:auto;min-width:150px;border-radius:10px}
+#stats .clockrow{margin-top:3px;font-size:12px;color:var(--ink-soft)}
 #stats .row{display:flex;justify-content:space-between;gap:10px;text-shadow:1px 1px 0 #d8cfb6}
 .bar{height:8px;border:2px solid var(--ink);border-radius:5px;background:#d9d0b8;margin:4px 0 5px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(#7fd86a,#3f9a46)}
@@ -209,6 +210,7 @@ body.reduced *{animation:none !important;transition:none !important}
     <div class="row"><span>Explored</span><span id="pct">0%</span></div>
     <div class="bar"><i id="pctBar"></i></div>
     <div class="row"><span>Witnesses</span><span id="relicCount">0/10</span></div>
+    <div class="row clockrow"><span id="clockIcon">&#9728;</span><span id="clock">10:00</span></div>
   </div>
   <div id="hudRight">
     <div id="mmWrap" class="box" title="Thorne's map (M)"><canvas id="minimap" width="200" height="160"></canvas></div>
@@ -272,6 +274,8 @@ const CONFIG = {
   runSpeed: 9,
   sparkleRange: 5,         // tiles at which a relic starts to sparkle
   finaleExplorePct: 98,    // % of the town that must be explored for the finale
+  dayLengthMinutes: 12,    // real minutes for one full day-night cycle
+  startHour: 10,           // clock time when a new survey begins
   saveKey: 'shrewsbury-survey-v1'
 };
 
@@ -1072,7 +1076,16 @@ function roofBlock(g, X, Y, W, H, col) {
   rect(g, X + 1, Y + ridge, W - 2, 1, shade(col, .35));
   rect(g, X + 1, Y + H - 2, W - 2, 2, 'rgba(0,0,0,.28)');
 }
+// Every window is remembered so it can be lit at night. on/off: clock hours it is lit between.
+const windows = [];
+function litWin(x, y, w, h, opts = {}) {
+  const r = Math.random();
+  windows.push({ x, y, w, h, mull: opts.mull, warm: opts.col || (r < .7 ? '#ffd27a' : r < .9 ? '#ffe7a8' : '#ffc070'),
+    on: 16.5 + Math.random() * 3, off: 21.5 + Math.random() * 4.5, early: Math.random() < .25, fire: Math.random() < .12,
+    dark: Math.random() < (opts.never || .18), ph: Math.random() * 9 });
+}
 function windowPx(g, x, y, frame = '#fbf7ea', w = 5, h = 6) {
+  litWin(x, y, w, h, { mull: x + Math.floor(w / 2) });
   rect(g, x - 1, y - 1, w + 2, h + 2, frame);
   rect(g, x, y, w, h, '#5aa7dc');
   rect(g, x, y, w, 2, '#9fd3f5');
@@ -1160,7 +1173,7 @@ function drawLandmark(g, b) {
       const st = '#c9b089';
       roofBlock(g, X, Y, W, 30, '#59636f');
       facade(g, X, Y + 30, W, H - 30, 'stone', r, false);
-      for (let xx = X + 4; xx < X + W - 6; xx += 12) { rect(g, xx, Y + 36, 7, 10, OUT); rect(g, xx + 1, Y + 37, 5, 8, '#6fb4e0'); rect(g, xx + 3, Y + 37, 1, 8, OUT); }
+      for (let xx = X + 4; xx < X + W - 6; xx += 12) { rect(g, xx, Y + 36, 7, 10, OUT); rect(g, xx + 1, Y + 37, 5, 8, '#6fb4e0'); rect(g, xx + 3, Y + 37, 1, 8, OUT); litWin(xx + 1, Y + 37, 5, 8, { mull: xx + 3, never: .05 }); }
       const cx = X + W / 2;
       rect(g, cx - 13, Y - 10, 26, 44, OUT); rect(g, cx - 12, Y - 9, 24, 42, st);
       for (let yy = Y - 6; yy < Y + 32; yy += 5) rect(g, cx - 12, yy, 24, 1, shade(st, -.12));
@@ -1177,6 +1190,7 @@ function drawLandmark(g, b) {
       facade(g, X, Y + 40, W, H - 40, 'stone', r, false);
       for (let xx = X + 8; xx < X + W - 10; xx += 14) {
         rect(g, xx, Y + 46, 8, 14, OUT); tri(g, xx, Y + 46, xx + 4, Y + 40, xx + 8, Y + 46, OUT);
+        litWin(xx + 1, Y + 46, 6, 13, { mull: xx + 4, never: .3 });
         rect(g, xx + 1, Y + 46, 6, 13, '#6fb4e0'); tri(g, xx + 1, Y + 46, xx + 4, Y + 42, xx + 7, Y + 46, '#6fb4e0'); rect(g, xx + 4, Y + 42, 1, 17, OUT);
       }
       const tx = X + 6;
@@ -1194,6 +1208,7 @@ function drawLandmark(g, b) {
       facade(g, X + tw, Y + H - 26, W - tw, 26, 'red', r, false);
       for (let xx = X + tw + 6; xx < X + W - 8; xx += 14) {
         rect(g, xx, Y + H - 21, 7, 14, OUT); tri(g, xx, Y + H - 21, xx + 3.5, Y + H - 26, xx + 7, Y + H - 21, OUT);
+        litWin(xx + 1, Y + H - 21, 5, 13, { mull: xx + 3, col: '#ffbf6a', never: .4 });
         rect(g, xx + 1, Y + H - 21, 5, 13, '#4f84c8'); rect(g, xx + 3, Y + H - 21, 1, 13, '#e6b84a');
       }
       const tx = X + 2, ty = Y + 18;
@@ -1202,6 +1217,7 @@ function drawLandmark(g, b) {
       if (abbey) {
         crenels(g, tx, ty, tw - 2, stone);
         rect(g, tx + 8, ty + 18, 16, 26, OUT); tri(g, tx + 8, ty + 18, tx + 16, ty + 8, tx + 24, ty + 18, OUT);
+        litWin(tx + 9, ty + 18, 14, 25, { mull: tx + 15, col: '#ffbf6a', never: 0 });
         rect(g, tx + 9, ty + 18, 14, 25, '#4f84c8'); tri(g, tx + 9, ty + 18, tx + 16, ty + 10, tx + 23, ty + 18, '#4f84c8');
         rect(g, tx + 15, ty + 10, 2, 33, '#2a2a40'); rect(g, tx + 9, ty + 28, 14, 1, '#2a2a40');
         rect(g, tx + 11, Y + H - 12, 10, 12, '#3a2418');
@@ -1283,7 +1299,7 @@ function drawLandmark(g, b) {
       roofBlock(g, X, Y, W, 30, '#59636f');
       rect(g, X, Y + 30, W, H - 30, '#b5563e');
       for (let yy = Y + 31; yy < Y + H; yy += 3) rect(g, X, yy, W, 1, '#a04a34');
-      for (let row = 0; row < 5; row++) for (let xx = X + 4; xx < X + W - 4; xx += 8) { rect(g, xx, Y + 33 + row * 12, 5, 7, '#f4ead2'); rect(g, xx + 1, Y + 34 + row * 12, 3, 5, '#4f6f8f'); }
+      for (let row = 0; row < 5; row++) for (let xx = X + 4; xx < X + W - 4; xx += 8) { rect(g, xx, Y + 33 + row * 12, 5, 7, '#f4ead2'); rect(g, xx + 1, Y + 34 + row * 12, 3, 5, '#4f6f8f'); if (row < 2) litWin(xx + 1, Y + 34 + row * 12, 3, 5, { never: .5 }); }
       outline(g, X, Y, W, H);
       chimneys.push({ x: X + W - 7, y: Y - 5, t: 0, big: true });
       rect(g, X + W - 12, Y - 4, 9, 30, OUT); rect(g, X + W - 11, Y - 3, 7, 28, '#a24a35'); rect(g, X + W - 12, Y - 4, 9, 3, '#3a3a40');
@@ -1543,6 +1559,8 @@ const state = {
   found: [], met: {}, flags: {}, sound: true,
   unlockedZones: new Set(['centre'])
 };
+state.clock = 18.9;          // the title screen shows the town at lamp-lighting time
+state.timeMode = 'cycle';    // cycle | day | local
 state.motion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'full';
 const player = { tx: MAP_DATA.start.x, ty: MAP_DATA.start.y, px: 0, py: 0, dir: 'down', moving: false, fx: 0, fy: 0, t: 0, step: 0, idleT: 1, turnT: 0, bumpT: 0 };
 // Characters: the five townsfolk plus passers-by. npcAt maps an occupied tile to whoever is on it.
@@ -1561,7 +1579,7 @@ function initFolk() {
     const k = idx(f.x, f.y);
     if (!inb(f.x, f.y) || !WALKABLE[grid[k]] || solidProp[k] || npcAt.has(k)) return console.warn('Passer-by cannot stand at', f.x, f.y);
     const c = makeChar({ x: f.x, y: f.y, name: 'Passer-by', look: AMBIENT.folkLooks[i % AMBIENT.folkLooks.length], dir: 'down' }, true);
-    c.zone = zoneGrid[k];
+    c.zone = zoneGrid[k]; c.out = true; c.owl = i % 4 === 0; c.homeOff = Math.random();
     folk.push(c); chars.push(c); npcAt.set(k, c);
   });
 }
@@ -1793,7 +1811,7 @@ function updatePigeons(dt) {
     if (p.st === 'ground') {
       if (Math.random() < dt * .3) { p.face = -p.face; p.x = clamp(p.x + p.face * 2, p.hx - 8, p.hx + 8); }
       const reach = player.moving && runHeld ? 46 : 30;
-      if (playing && Math.hypot(pcx - p.x, pcy - p.y) < reach) {
+      if (playing && !roosting() && Math.hypot(pcx - p.x, pcy - p.y) < reach) {
         const a = Math.atan2(p.y - pcy, p.x - pcx) + (Math.random() - .5);
         p.st = 'fly'; p.t = 0; p.vx = Math.cos(a) * 70; p.vy = Math.min(-35, Math.sin(a) * 50 - 45); p.face = p.vx >= 0 ? 1 : -1;
         if (flapSoundT <= 0) { sfx.flap(); flapSoundT = .5; }
@@ -1816,7 +1834,9 @@ function updatePigeons(dt) {
     }
   }
 }
+const roosting = () => sky.dark > .6;
 function drawPigeons(flying) {
+  if (!flying && roosting()) return;
   for (const p of pigeons) {
     const air = p.st === 'fly' || p.st === 'land';
     if (p.st === 'gone' || air !== flying) continue;
@@ -1846,7 +1866,7 @@ function drawClouds() {
   for (const c of clouds) {
     const X = c.x - camX, Y = c.y - camY;
     if (X + c.w < 0 || X - c.w > VW || Y + c.h < 0 || Y - c.h > VH) continue;
-    ctx.globalAlpha = .06;
+    ctx.globalAlpha = .06 * (1 - sky.dark);
     ctx.beginPath(); ctx.ellipse(X, Y, c.w * .5, c.h * .5, 0, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(X + c.w * .3, Y - c.h * .2, c.w * .35, c.h * .45, 0, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.ellipse(X - c.w * .3, Y + c.h * .1, c.w * .3, c.h * .35, 0, 0, 7); ctx.fill();
@@ -1860,16 +1880,90 @@ function initGlows() {
   glowPoints = props.filter(p => p.type === 'lamp').map(p => ({ x: p.x * TS + 8, y: p.y * TS - 1, lamp: true, ph: Math.random() * 9 }))
     .concat(AMBIENT.glows.map(([x, y]) => ({ x: x * TS, y: y * TS, ph: Math.random() * 9 })));
 }
+/* ---------- Day and night ---------- */
+// state.clock is the in-game hour (0-24). The sky key frames give the tint multiplied over the
+// scene and how dark it is (0 = full day, 1 = deep night).
+const SKY = [
+  [0, '#56609e', 1], [4.6, '#56609e', 1], [5.8, '#9a86b8', .75], [6.8, '#e8a8a0', .4], [7.8, '#fff0dc', .1], [8.6, '#ffffff', 0],
+  [16.2, '#ffffff', 0], [17.2, '#ffe2b8', .12], [18.1, '#f0a880', .38], [19.1, '#9c80b4', .7], [20.3, '#5e66a6', .95], [24, '#56609e', 1]
+];
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function lightHour() {
+  if (state.timeMode === 'day') return 12;
+  if (state.timeMode === 'local') { const d = new Date(); return d.getHours() + d.getMinutes() / 60; }
+  return state.clock;
+}
+let sky = { tint: '#ffffff', dark: 0, light: 0 };
+function updateSky() {
+  const h = lightHour();
+  let i = 1; while (i < SKY.length - 1 && SKY[i][0] <= h) i++;
+  const a = SKY[i - 1], b = SKY[i], k = (h - a[0]) / (b[0] - a[0] || 1);
+  const ca = hexRgb(a[1]), cb = hexRgb(b[1]);
+  const c = ca.map((v, j) => Math.round(v + (cb[j] - v) * k));
+  sky.tint = `rgb(${c[0]},${c[1]},${c[2]})`;
+  sky.dark = a[2] + (b[2] - a[2]) * k;
+  sky.light = clamp((sky.dark - .12) / .5, 0, 1);   // how strongly artificial lights show
+}
+function advanceClock(dt) {
+  state.clock = (state.clock + dt * 24 / (CONFIG.dayLengthMinutes * 60)) % 24;
+}
+function clockText() {
+  const h = lightHour(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 10) * 10;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+function windowLit(w, h) {
+  if (w.dark) return false;
+  if (w.early && h >= 6 && h < 8.2) return true;
+  const off = w.off >= 24 ? w.off - 24 : w.off;
+  return w.off >= 24 ? (h >= w.on || h < off) : (h >= w.on && h < off);
+}
+function drawNight() {
+  if (sky.dark <= .001) return;
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = sky.tint; ctx.fillRect(0, 0, VW, VH);
+  ctx.globalCompositeOperation = 'source-over';
+  if (sky.light <= 0) return;
+  const h = lightHour(), L = sky.light;
+  const x0 = camX - 8, y0 = camY - 8, x1 = camX + VW + 8, y1 = camY + VH + 8;
+  const lit = [];
+  for (const w of windows) {
+    if (w.x > x1 || w.y > y1 || w.x + w.w < x0 || w.y + w.h < y0 || !windowLit(w, h)) continue;
+    lit.push(w);
+    const X = w.x - camX, Y = w.y - camY;
+    ctx.globalAlpha = L * (w.fire ? .8 + .2 * Math.sin(time * 9 + w.ph) * Math.sin(time * 3.1 + w.ph) : .95);
+    rect(ctx, X, Y, w.w, w.h, w.warm);
+    rect(ctx, X, Y, w.w, 1, '#fff2c8');
+    if (w.mull !== undefined) rect(ctx, w.mull - camX, Y, 1, w.h, '#3a2e2a');
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const w of lit) {   // light spilling from the glass
+    ctx.globalAlpha = .1 * L; rect(ctx, w.x - camX - 2, w.y - camY - 2, w.w + 4, w.h + 4, '#ffb050');
+    ctx.globalAlpha = .07 * L; rect(ctx, w.x - camX - 1, w.y - camY + w.h, w.w + 2, 4, '#ffb050');
+  }
+  ctx.globalAlpha = 1;
+  // the surveyor's lantern
+  if (state.mode !== 'title') {
+    const X = player.px + 8 - camX, Y = player.py + 6 - camY, r = 46;
+    const grd = ctx.createRadialGradient(X, Y, 0, X, Y, r);
+    grd.addColorStop(0, `rgba(255,214,150,${.22 * L})`); grd.addColorStop(1, 'rgba(255,190,110,0)');
+    ctx.fillStyle = grd; ctx.fillRect(X - r, Y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
 function drawGlows() {
+  if (sky.light <= 0) return;
   ctx.globalCompositeOperation = 'lighter';
   for (const g of glowPoints) {
     const X = g.x - camX, Y = g.y - camY;
     if (X < -30 || Y < -30 || X > VW + 30 || Y > VH + 30) continue;
-    const f = .78 + .14 * Math.sin(time * 8 + g.ph) + .08 * Math.sin(time * 23 + g.ph * 2);
+    const f = (.78 + .14 * Math.sin(time * 8 + g.ph) + .08 * Math.sin(time * 23 + g.ph * 2)) * sky.light * 1.6;
     const r = 15 + f * 3;
-    const grd = ctx.createRadialGradient(X, Y, 0, X, Y, r);
+    const R = g.lamp ? r * 1.6 : r;
+    const grd = ctx.createRadialGradient(X, Y, 0, X, Y, R);
     grd.addColorStop(0, `rgba(255,196,110,${.3 * f})`); grd.addColorStop(1, 'rgba(255,170,80,0)');
-    ctx.fillStyle = grd; ctx.fillRect(X - r, Y - r, r * 2, r * 2);
+    ctx.fillStyle = grd; ctx.fillRect(X - R, Y - R, R * 2, R * 2);
   }
   ctx.globalCompositeOperation = 'source-over';
   for (const g of glowPoints) if (g.lamp) {
@@ -2014,6 +2108,7 @@ function drawEntities(treesOnly) {
   }
   if (!treesOnly) {
     for (const n of chars) {
+      if (n.folk && !n.out) continue;
       if (n.px < camX - 20 || n.px > camX + VW + 20 || n.py < camY - 30 || n.py > camY + VH + 20) continue;
       list.push({ y: n.py, draw: () => {
         const X = Math.round(n.px - camX), Y = Math.round(n.py - camY);
@@ -2070,13 +2165,16 @@ function render(dt) {
   drawTerrainAnim();
   drawParticles('under');
   drawFowl();
-  if (!title) { drawBarriers(); drawRelics(); }
+  if (!title) drawBarriers();
   drawPigeons(false);
   drawEntities(title);
   drawPigeons(true);
   drawParticles('over');
-  drawCollect();
+  updateSky();
+  drawNight();
   drawGlows();
+  if (!title) drawRelics();   // sparkles stay bright at night
+  drawCollect();
   drawClouds();
   if (!title) drawFog();
   if (flashT > 0) { ctx.globalAlpha = Math.min(1, flashT * 3); ctx.fillStyle = '#fffbe8'; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
@@ -2367,8 +2465,24 @@ function charMove(e, d) {
   e.moving = true; e.fx = dx; e.fy = dy; e.t = 0;
   return true;
 }
+const offScreen = (x, y) => x * TS < camX - 24 || x * TS > camX + VW + 8 || y * TS < camY - 24 || y * TS > camY + VH + 8;
+// Passers-by head home late at night (out of sight), and come back out in the morning.
+function folkAbout(e) {
+  const h = lightHour(), want = e.owl || (h >= 6.6 + e.homeOff && h < 22 + e.homeOff * 1.5);
+  if (want === e.out) return e.out;
+  if (!want) {
+    if (!e.moving && offScreen(e.x, e.y)) { npcAt.delete(idx(e.x, e.y)); e.out = false; }
+  } else {
+    const k = idx(e.hx, e.hy);
+    if (!npcAt.has(k) && !(player.tx === e.hx && player.ty === e.hy) && offScreen(e.hx, e.hy)) {
+      e.x = e.hx; e.y = e.hy; e.moving = false; e.px = e.x * TS; e.py = e.y * TS; npcAt.set(k, e); e.out = true;
+    }
+  }
+  return e.out;
+}
 function updateChars(dt) {
   for (const e of chars) {
+    if (e.folk && !folkAbout(e)) continue;
     if (e.moving) {
       e.t += dt * e.speed;
       if (e.t >= 1) { e.x += e.fx; e.y += e.fy; e.moving = false; e.t = 0; e.step++; }
@@ -2417,10 +2531,17 @@ function updateChars(dt) {
 }
 
 /* ---------- HUD ---------- */
-let lastPctShown = -1, lastFoundShown = -1;
+let lastPctShown = -1, lastFoundShown = -1, lastClockShown = '';
 function updateHud() {
   const p = explorePct(), pi = Math.floor(p);
   if (pi !== lastPctShown) { $('pct').textContent = pi + '%'; $('pctBar').style.width = p.toFixed(1) + '%'; lastPctShown = pi; }
+  updateSky();
+  const ct = clockText();
+  if (ct !== lastClockShown) {
+    lastClockShown = ct;
+    $('clock').textContent = state.timeMode === 'day' ? ct + ' (always day)' : ct;
+    $('clockIcon').innerHTML = sky.dark > .5 ? '&#9790; Night' : sky.dark > .08 ? (lightHour() < 12 ? '&#9728; Dawn' : '&#9728; Dusk') : '&#9728; Day';
+  }
   if (state.found.length !== lastFoundShown) {
     const el = $('relicCount');
     el.textContent = `${state.found.length}/${RELICS.length}`;
@@ -2589,6 +2710,7 @@ function menuView() {
         <button class="btn" data-act="map">Thorne's Map <span>M</span></button>
         ${complete ? `<button class="btn" data-act="finale">${STORY.finaleTitle}</button>` : ''}
         <button class="btn" data-act="route" ${complete ? '' : 'disabled'}>Walking Route <span>${complete ? 'real-world' : 'after the survey'}</span></button>
+        <button class="btn" data-act="time">Time of day: ${{ cycle: 'Day & night', day: 'Always day', local: 'My clock' }[state.timeMode]} <span>${clockText()}</span></button>
         <button class="btn" data-act="sound">Sound: ${state.sound ? 'On' : 'Off'}</button>
         <button class="btn" data-act="motion">Motion: ${state.motion === 'reduced' ? 'Reduced' : 'Full'} <span>camera, shake, effects</span></button>
         <button class="btn" data-act="help">How to Play</button>
@@ -2604,6 +2726,7 @@ function menuView() {
       if (act === 'finale') openModal(finaleView);
       if (act === 'route') openModal(routeView);
       if (act === 'help') openModal(helpView);
+      if (act === 'time') { state.timeMode = { cycle: 'day', day: 'local', local: 'cycle' }[state.timeMode]; lastClockShown = ''; save(); renderModal(); }
       if (act === 'motion') { state.motion = state.motion === 'reduced' ? 'full' : 'reduced'; applyMotion(); save(); renderModal(); }
       if (act === 'sound') { state.sound = !state.sound; if (state.sound) ensureAudio(); save(); renderModal(); }
       if (act === 'title') { save(); closeAllModals('title'); showTitle(); }
@@ -2625,6 +2748,8 @@ const helpView = {
     <p>New districts open as your log grows. When every witness is found and the fog is cleared, the survey is complete, and you can take Thorne's route around the real town.</p>
     <h3>Controls</h3>
     <p class="small">Walk: arrow keys / WASD / D-pad · Talk, read, continue: Space, Enter or Z / A button · Hurry: hold Shift or X / B button · Menu: Esc · Journal: J · Timeline: T · Map: M</p>
+    <h3>Day and night</h3>
+    <p class="small">A day in Shrewsbury lasts ${CONFIG.dayLengthMinutes} minutes. Lamps and windows light up after dusk, and most passers-by head home late. In the menu you can keep it always day, or follow your device's clock.</p>
     <h3>Install</h3>
     <p class="small">This game works offline. On a phone, use your browser's "Add to Home Screen" (or the Install button on the title screen) to keep it as an app.</p>
     <div class="btnrow"><button class="btn primary" data-act="close" data-focus>Close</button></div>`
@@ -2668,7 +2793,7 @@ function save() {
   try {
     localStorage.setItem(CONFIG.saveKey, JSON.stringify({
       v: 1, x: player.tx, y: player.ty, dir: player.dir, found: state.found, met: state.met,
-      flags: state.flags, sound: state.sound, motion: state.motion, fog: b64(fog), at: Date.now()
+      flags: state.flags, sound: state.sound, motion: state.motion, clock: state.clock, timeMode: state.timeMode, fog: b64(fog), at: Date.now()
     }));
     fogDirty = false;
   } catch (e) { /* storage full or unavailable: play on */ }
@@ -2680,6 +2805,8 @@ function applySave(d) {
   state.found = (d.found || []).filter(id => relicById[id]);
   state.met = d.met || {}; state.flags = d.flags || {}; state.sound = d.sound !== false;
   if (d.motion) { state.motion = d.motion; applyMotion(); }
+  state.clock = typeof d.clock === 'number' ? d.clock : CONFIG.startHour;
+  state.timeMode = ['cycle', 'day', 'local'].includes(d.timeMode) ? d.timeMode : 'cycle';
   fog.fill(0);
   if (d.fog) try { unb64(d.fog, fog); } catch (e) { fog.fill(0); }
   refreshFogAll();
@@ -2712,7 +2839,7 @@ function startPlay() {
   updatePlayer(0); updateHud();
 }
 function newGame() {
-  state.found = []; state.met = {}; state.flags = { started: true };
+  state.found = []; state.met = {}; state.flags = { started: true }; state.clock = CONFIG.startHour;
   fog.fill(0); refreshFogAll();
   placePlayer(MAP_DATA.start.x, MAP_DATA.start.y, MAP_DATA.start.dir);
   state.unlockedZones = new Set(ZONES.filter(zoneOpen).map(z => z.id));
@@ -2763,6 +2890,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 let last = performance.now(), saveTimer = 0;
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now; time += dt;
+  if (state.mode === 'play' || state.mode === 'dialogue' || state.mode === 'collect') advanceClock(dt);
   if (state.mode === 'play') { updatePlayer(dt); updatePrompt(); }
   else if (state.mode === 'dialogue') updateDialogue(dt);
   else if (state.mode === 'collect') updateCollect(dt);
